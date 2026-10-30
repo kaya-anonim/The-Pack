@@ -634,13 +634,13 @@ Dark Woods - Forsaken Forest 30</textarea>
   function dur(ms){ var d = Math.floor(ms/DAY), h = Math.floor(ms%DAY/HOUR), m = Math.floor(ms%HOUR/6e4);
     if(d>0) return d+"d "+h+"h"; if(h>0) return h+"h "+m+"m"; return m+"m"; }
 
-  // Battle Event: Fri 13:00 UTC to Mon 16:00 UTC. Raids: Sun 17:00 UTC, Mon 11:00 UTC.
+  // Battle Event: Fri 13:00 UTC to Mon 14:00 UTC. Raids: Sun 11:00 UTC, Mon 11:00 UTC.
   function cycles(now){
     var base = utcMonday(now), out = [];
     for(var w=-1; w<=1; w++){
       var mon = base + w*7*DAY;
-      out.push({start: mon + 4*DAY + 13*HOUR, end: mon + 7*DAY + 16*HOUR,
-        raids:[mon + 6*DAY + 17*HOUR, mon + 7*DAY + 11*HOUR]});
+      out.push({start: mon + 4*DAY + 13*HOUR, end: mon + 7*DAY + 14*HOUR,
+        raids:[mon + 6*DAY + 11*HOUR, mon + 7*DAY + 11*HOUR]});
     }
     return out;
   }
@@ -686,11 +686,11 @@ Dark Woods - Forsaken Forest 30</textarea>
   // ---------- messages ----------
   var M = {
     msPost: "Monster Slayer is up! Best stages this week are in the announcements 🗺️",
-    beStart: "{color} battle day! Please wait for the runners to get us to Guild Boss 91 (GB91) before hitting the GB with one 2 ticket strike.\n\nEveryone involved in the kill gets the same reward, so being weak is not an issue. Please don't hit a GB multiple times.\n\nEveryone at lvl 35+ should participate, so update your BE multiplier and loadouts. Any questions then please ask. Enjoy the battle 💪⚔️",
+    beStart: "{color} battle day, runs until Monday 14:00 UTC! Please wait for the runners to get us to GB91 before hitting the GB with one 2 ticket strike.\n\nEveryone involved in the kill gets the same reward, so being weak is not an issue. Please don't hit a GB multiple times.\n\nEveryone at lvl 35+ should participate, so update your BE multiplier and loadouts. Any questions then please ask. Enjoy the battle 💪⚔️",
     gbRemind: "🐺 GB reminder: hit each GB once with a 2 ticket strike. Damage doesn't matter, everyone in the kill gets the same reward!",
-    raidSun: "🔔 Pack hunt tonight! We hit the guild boss together at 17:00 UTC. Come along and spend your tickets with us 🐺",
-    raidMon: "🔔 Final hunt of the week at 11:00 UTC. The Battle Event closes at 16:00 UTC, so any tickets left after that are wasted. Let's use them all 💪",
-    raidSoon: "🐺 One hour until the pack hunt (17:00 UTC). Get your tickets ready!",
+    raidSun: "🔔 Pack hunt today! We hit the guild boss together at 11:00 UTC. Come along and spend your tickets with us 🐺",
+    raidMon: "🔔 Final hunt of the week at 11:00 UTC. The Battle Event closes at 14:00 UTC, so any tickets left after that are wasted. Let's use them all 💪",
+    raidSoon: "🐺 One hour until the pack hunt (11:00 UTC). Get your tickets ready!",
     askKaya: "Hey {name}, we missed you in the last Battle Event. Everything ok? If you're busy, just let us know 🙂",
     askKaya2: "Hi {name}, you've missed the last two Battle Events. Is something getting in the way? Happy to help with tickets or builds.",
     warnEwa: "Hi {name}, we haven't seen you in the last {n} Battle Events and we miss you 🙂 Is everything ok? Even one GB hit helps the whole guild.",
@@ -737,9 +737,9 @@ Dark Woods - Forsaken Forest 30</textarea>
   // key = stable id for the tick in the database (done:<ISO week>:<key>), so reordering tasks never moves ticks
   var TASKS = [
     {key:"mon-raid",       who:"ewa",  day:0, title:"Lead the last guild boss raid", time:11, msg:M.raidMon},
-    {key:"mon-mark",       who:"kaya", day:0, title:"Mark who played after the event ends", time:16, link:"be"},
-    {key:"mon-shout",      who:"kaya", day:0, title:"Post the shout-out", time:16, link:"be"},
-    {key:"mon-stats",      who:"ewa",  day:0, title:"Post the last BE stats", time:16, msg:"posts:stats"},
+    {key:"mon-mark",       who:"kaya", day:0, title:"Mark who played after the event ends", time:14, link:"be"},
+    {key:"mon-shout",      who:"kaya", day:0, title:"Post the shout-out", time:14, link:"be"},
+    {key:"mon-stats",      who:"ewa",  day:0, title:"Post the last BE stats", time:14, msg:"posts:stats"},
     {key:"tue-ms",         who:"kaya", day:1, title:"Post the Monster Slayer stages", msg:"posts:ms"},
     {key:"wed-wtu",        who:"kaya", day:2, title:"Post what to use for the next Battle Event", msg:"posts:wtu"},
     {key:"tue-ask",        who:"kaya", day:1, title:"Ask members who missed 1 or 2 events", link:"be"},
@@ -747,8 +747,8 @@ Dark Woods - Forsaken Forest 30</textarea>
     {key:"thu-runorder",   who:"ewa",  day:3, title:"Post the GB run order", msg:"posts:order"},
     {key:"fri-battle",     who:"ewa",  day:4, title:"Post the battle day announcement", time:13, msg:"be:start"},
     {key:"sat-gbremind",   who:"kaya", day:5, title:"Remind people how the guild boss works", msg:M.gbRemind},
-    {key:"sun-raidremind", who:"ewa",  day:6, title:"Remind everyone about the raid", time:16, msg:M.raidSoon},
-    {key:"sun-raid",       who:"ewa",  day:6, title:"Lead the guild boss raid", time:17, msg:M.raidSun}
+    {key:"sun-raidremind", who:"ewa",  day:6, title:"Remind everyone about the raid", time:10, msg:M.raidSoon},
+    {key:"sun-raid",       who:"ewa",  day:6, title:"Lead the guild boss raid", time:11, msg:M.raidSun}
   ];
   // daily ticks: daily:<YYYY-MM-DD>:<key>
   var DAILY = [
