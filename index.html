@@ -1,0 +1,906 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Pack Tracker</title>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="The Pack">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="theme-color" content="#0E7490" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#080D16" media="(prefers-color-scheme: dark)">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%230B1220'/%3E%3Cstop offset='1' stop-color='%230E7490'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='64' height='64' rx='14' fill='url(%23g)'/%3E%3Ctext x='32' y='44' font-family='Arial,sans-serif' font-size='34' font-weight='800' text-anchor='middle' fill='%2367E8F9'%3EP%3C/text%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap">
+<style id="app-style">
+*, *::before, *::after { box-sizing: border-box; }
+body { margin: 0; }
+[hidden] { display: none !important; }
+:root {
+  --bg: #EEF1F4;
+  --card: #FFFFFF;
+  --ink: #17202B;
+  --mute: #566273;
+  --line: #D5DCE4;
+  --accent: #1F6C8A;
+  --accent-soft: #E3EEF3;
+  --blue: #2F6FD0;
+  --red: #C8433B;
+  --other: #7A8696;
+  --vio: #6D28D9;
+  --vio-s: #EDE9FE;
+  --font-display: 'Barlow Condensed', 'Arial Narrow', 'Helvetica Neue', Arial, sans-serif;
+  --font-body: 'Barlow', system-ui, -apple-system, 'Segoe UI', Roboto, Arial, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, 'DejaVu Sans Mono', monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0E151C; --card: #16202A; --ink: #E7EDF3; --mute: #94A2B2; --line: #2A3642;
+    --accent: #62B4D6; --accent-soft: #1B2C37; --blue: #6C9BEA; --red: #E4776F; --other: #8F9CAB;
+    --vio: #B79CFF; --vio-s: #2A2142;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0E151C; --card: #16202A; --ink: #E7EDF3; --mute: #94A2B2; --line: #2A3642;
+  --accent: #62B4D6; --accent-soft: #1B2C37; --blue: #6C9BEA; --red: #E4776F; --other: #8F9CAB;
+  --vio: #B79CFF; --vio-s: #2A2142;
+  color-scheme: dark;
+}
+html, body { background: var(--bg); }
+body {
+  color: var(--ink); font-family: var(--font-body); font-size: 15px; line-height: 1.45;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 20px 40px;
+}
+#app { max-width: 980px; margin: 0 auto; display: flex; flex-direction: column; gap: 22px; }
+h1, h2, .num { font-family: var(--font-display); }
+h1 { font-size: 40px; line-height: 1; margin: 0; letter-spacing: 0.01em; text-transform: uppercase; font-weight: 700; text-wrap: balance; }
+h2 { font-size: 22px; margin: 0 0 8px; font-weight: 700; letter-spacing: 0.02em; text-transform: uppercase; color: var(--accent); text-wrap: balance; }
+.sub { color: var(--mute); margin: 6px 0 0; }
+.help { color: var(--mute); font-size: 14px; margin: 0 0 10px; }
+.notice { background: var(--accent-soft); border: 1px solid var(--line); border-radius: 6px; padding: 8px 12px; }
+.panel { background: var(--card); border: 1px solid var(--line); border-radius: 8px; padding: 14px 16px; }
+.strip { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); background: var(--card); border: 1px solid var(--line); border-radius: 8px; }
+.stat { padding: 12px 16px; min-width: 0; border-right: 1px solid var(--line); }
+.stat:last-child { border-right: 0; }
+.stat .lab { color: var(--mute); font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; }
+.stat .num { font-size: 36px; font-weight: 700; line-height: 1.05; font-variant-numeric: tabular-nums; }
+.stat .hint { color: var(--mute); font-size: 13px; }
+.empty { color: var(--mute); padding: 6px 0; }
+.chart-wrap { overflow-x: auto; }
+svg.chart { width: 100%; min-width: 420px; height: auto; display: block; }
+svg.chart text { fill: var(--mute); font-family: var(--font-body); font-size: 11px; }
+svg.chart .grid { stroke: var(--line); stroke-width: 1; }
+svg.chart .ln { stroke: var(--accent); stroke-width: 2; fill: none; }
+.scroll { overflow-x: auto; }
+table { border-collapse: collapse; width: 100%; min-width: 760px; font-variant-numeric: tabular-nums; }
+th, td { text-align: left; padding: 7px 8px; border-bottom: 1px solid var(--line); vertical-align: top; white-space: nowrap; }
+th { font-size: 12px; letter-spacing: 0.05em; text-transform: uppercase; color: var(--mute); font-weight: 600; }
+td.r, th.r { text-align: right; }
+td .note { display: block; color: var(--mute); font-size: 13px; white-space: normal; max-width: 260px; }
+.pill { display: inline-block; padding: 1px 9px; border-radius: 999px; font-size: 12px; font-weight: 600; color: #fff; }
+.pill.Blue { background: var(--blue); } .pill.Red { background: var(--red); } .pill.Other { background: var(--other); }
+button { font: inherit; cursor: pointer; border-radius: 6px; border: 1px solid var(--line); background: var(--card); color: var(--ink); padding: 6px 12px; }
+button:hover { border-color: var(--accent); }
+button.primary { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 600; }
+button.link { border: 0; background: none; color: var(--accent); padding: 2px 6px; }
+button.danger { color: var(--red); }
+button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+form.entry { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px 12px; }
+label { display: flex; flex-direction: column; gap: 3px; font-size: 12px; letter-spacing: 0.05em; text-transform: uppercase; color: var(--mute); min-width: 0; }
+input, select, textarea { font: inherit; font-size: 15px; letter-spacing: 0; text-transform: none; color: var(--ink); background: var(--bg); border: 1px solid var(--line); border-radius: 6px; padding: 7px 9px; min-width: 0; width: 100%; }
+textarea { font-family: var(--font-mono); font-size: 14px; min-height: 150px; resize: vertical; }
+.span2 { grid-column: span 2; }
+.form-actions { grid-column: 1 / -1; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.msg { color: var(--red); font-size: 14px; }
+.two { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; }
+.who { font-family: var(--font-display); font-size: 20px; font-weight: 700; margin: 0 0 4px; }
+.task { display: flex; gap: 10px; align-items: flex-start; padding: 7px 0; border-bottom: 1px solid var(--line); text-transform: none; letter-spacing: 0; font-size: 15px; color: var(--ink); flex-direction: row; }
+.task:last-child { border-bottom: 0; }
+.task input { width: 18px; height: 18px; margin-top: 3px; flex: none; padding: 0; accent-color: var(--accent); }
+.task .t { min-width: 0; }
+.task .w { color: var(--mute); font-size: 13px; }
+.task.done .t b { text-decoration: line-through; color: var(--mute); font-weight: 500; }
+.weekbar { display: flex; gap: 10px; align-items: end; flex-wrap: wrap; margin-bottom: 10px; }
+.weekbar label { flex: 1 1 240px; }
+.post { display: flex; flex-direction: column; gap: 8px; margin-top: 10px; }
+.post-head { display: flex; gap: 10px; align-items: center; justify-content: space-between; flex-wrap: wrap; }
+.post-head .lab { color: var(--mute); font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; }
+pre.out { margin: 0; padding: 10px 12px; background: var(--accent-soft); border: 1px solid var(--line); border-radius: 6px; font-family: var(--font-mono); font-size: 14px; white-space: pre-wrap; overflow-wrap: anywhere; }
+.skip { color: var(--red); font-size: 13px; margin-top: 6px; }
+
+.tabs { display: flex; gap: 6px; position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; background: var(--bg); padding: 8px 0; }
+.tabs button { flex: 1; min-height: 46px; font-weight: 600; font-size: 16px; }
+.tabs button[aria-selected="true"] { background: var(--accent); border-color: var(--accent); color: #fff; }
+.pg { display: flex; flex-direction: column; gap: 22px; }
+.pg[hidden] { display: none; }
+.gt { font-family: var(--font-display); font-size: 20px; font-weight: 700; margin: 14px 0 2px; }
+.mcard { display: flex; gap: 12px; align-items: flex-start; background: var(--card); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; margin-bottom: 8px; }
+.mcard .mb { flex: 1; min-width: 0; }
+.mcard pre { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; font-family: var(--font-body); font-size: 16px; line-height: 1.45; }
+.mcard.mono pre { font-family: var(--font-mono); font-size: 14px; }
+.mcard button { flex: none; min-height: 44px; min-width: 88px; }
+.mcard .gl { color: var(--mute); font-size: 13px; margin-top: 4px; }
+.ph { background: var(--accent-soft); border-radius: 3px; padding: 0 2px; }
+.tg { display: flex; gap: 10px; align-items: center; font-size: 15px; text-transform: none; letter-spacing: 0; color: var(--ink); flex-direction: row; min-height: 44px; }
+.tg input { width: 20px; height: 20px; padding: 0; accent-color: var(--accent); }
+.wchip { display: inline-block; font-size: 12px; font-weight: 700; padding: 1px 9px; border-radius: 999px; white-space: nowrap; vertical-align: middle; letter-spacing: 0; text-transform: none; font-family: var(--font-body); }
+.wchip.ewa { background: var(--vio-s); color: var(--vio); }
+.wchip.kaya { background: var(--accent-soft); color: var(--accent); }
+.wchip.both { background: var(--line); color: var(--ink); }
+.dsub { display: block; text-transform: none; letter-spacing: 0; font-weight: 400; color: var(--mute); font-size: 14px; font-family: var(--font-body); }
+.pg > section { scroll-margin-top: 120px; }
+.grow { display: flex; gap: 12px; padding: 6px 0; border-top: 1px solid var(--line); }
+.grow button { width: 96px; flex: none; text-align: left; font-weight: 700; padding: 2px 0; }
+.mbtn { display: flex; gap: 6px; flex: none; }
+.medit { font-family: var(--font-body); font-size: 16px; line-height: 1.45; width: 100%; min-height: 70px; }
+.mcard.mono .medit { font-family: var(--font-mono); font-size: 14px; }
+@media (max-width: 520px) { .mcard { flex-direction: column; } .mcard .mb { width: 100%; } .mbtn { align-self: flex-end; } }
+@media (max-width: 520px) { h1 { font-size: 32px; } .span2 { grid-column: auto; } }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+
+/* v2 look: matches the PDF */
+:root{--bg:#F2F5F9;--card:#FFFFFF;--ink:#0F172A;--mute:#64748B;--line:#E2E8F0;--accent:#0E7490;--accent-soft:#E3F6FA;--vio:#6D28D9;--vio-s:#EDE9FE;--soft:#E3F6FA;--vs:#EDE9FE;--shadow:0 1px 2px rgba(15,23,42,.05),0 6px 18px -8px rgba(15,23,42,.14); --font-display:'Inter',system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif;--font-body:'Inter',system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif;--r:16px}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#080D16;--card:#101826;--ink:#E8EEF6;--mute:#8FA0B5;--line:#1D2A3B;--accent:#5CD3EE;--accent-soft:#10303A;--vio:#B79CFF;--vio-s:#2A2142;--soft:#10303A;--vs:#2A2142;--shadow:0 1px 2px rgba(0,0,0,.4),0 8px 22px -10px rgba(0,0,0,.7); color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#080D16;--card:#101826;--ink:#E8EEF6;--mute:#8FA0B5;--line:#1D2A3B;--accent:#5CD3EE;--accent-soft:#10303A;--vio:#B79CFF;--vio-s:#2A2142;--soft:#10303A;--vs:#2A2142;--shadow:0 1px 2px rgba(0,0,0,.4),0 8px 22px -10px rgba(0,0,0,.7); color-scheme:dark}
+html,body{background:var(--bg)}
+body{font-family:var(--font-body);font-size:15px;line-height:1.5;-webkit-font-smoothing:antialiased}
+.hero{position:relative;overflow:hidden;background:linear-gradient(120deg,#0B1220 0%,#123B4F 60%,#0E7490 100%);color:#fff;border-radius:22px;padding:26px 24px 22px;box-shadow:var(--shadow)}
+.hero::after{content:"";position:absolute;right:-60px;top:-70px;width:240px;height:240px;border-radius:50%;background:radial-gradient(circle,rgba(103,232,249,.28),transparent 68%);pointer-events:none}
+.hero .kicker{font-size:11px;letter-spacing:.22em;font-weight:700;color:#67E8F9;margin:0 0 8px}
+.hero h1{font-family:var(--font-display);font-size:34px;line-height:1.08;margin:0;font-weight:800;letter-spacing:-.02em;text-transform:none;color:#fff}
+.hero .sub{color:#CBD5E1;margin:8px 0 0;max-width:60ch;font-size:15px}
+h1,h2,.num,.gt,.who{font-family:var(--font-display)}
+h2{font-size:19px;font-weight:800;letter-spacing:-.01em;text-transform:none;color:var(--ink);margin:0 0 10px;padding-left:12px;border-left:4px solid var(--accent);line-height:1.2}
+h2 .dsub,h2 small{display:block;font-size:13px;font-weight:500;color:var(--mute);margin-top:3px;letter-spacing:0}
+.gt{font-size:15px;font-weight:700;margin:18px 0 4px;letter-spacing:-.005em}
+.panel,.strip,.mcard,.card{background:var(--card);border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--shadow)}
+.panel{padding:16px 18px}
+.strip{overflow:hidden}
+.stat .num{font-family:var(--font-display);font-weight:800;letter-spacing:-.02em}
+.mcard,.card{padding:12px 14px;border-left-width:4px}
+.mcard.o-ewa,.card.o-ewa{border-left-color:var(--vio)}
+.mcard.o-kaya,.card.o-kaya{border-left-color:var(--accent)}
+.mcard.o-both,.card.o-both{border-left-color:var(--line)}
+button{border-radius:999px;font-weight:600;transition:transform .12s,box-shadow .12s,background .12s}
+button:active{transform:scale(.97)}
+button.primary,.card button:not(.alt){background:linear-gradient(135deg,#0E7490,#0891B2);border-color:transparent;color:#fff;box-shadow:0 4px 12px -4px rgba(14,116,144,.55)}
+button.alt,.mcard button:not(.primary){background:transparent;color:var(--ink);border-color:var(--line)}
+button.link{background:none;border:0;box-shadow:none;color:var(--accent)}
+.tabs{position:sticky;top:env(safe-area-inset-top,0px);z-index:6;display:flex;gap:4px;padding:5px;margin:0;border:1px solid var(--line);border-radius:999px;background:color-mix(in srgb,var(--card) 88%,transparent);backdrop-filter:blur(10px);box-shadow:var(--shadow)}
+.tabs button{flex:1;min-height:42px;border:0;background:transparent;font-size:15px;box-shadow:none;color:var(--mute)}
+.tabs button[aria-selected="true"]{background:linear-gradient(135deg,#0E7490,#0891B2);color:#fff;box-shadow:0 4px 12px -4px rgba(14,116,144,.6)}
+.daynav{display:flex;gap:6px;overflow-x:auto;padding:2px 2px 6px;scrollbar-width:none;position:sticky;top:calc(env(safe-area-inset-top,0px) + 62px);z-index:5;background:linear-gradient(var(--bg) 70%,transparent)}
+.daynav::-webkit-scrollbar{display:none}
+.daynav button,.daynav a{flex:none;min-height:36px;min-width:0;padding:5px 14px;font-size:13px;font-weight:700;border-radius:999px;border:1px solid var(--line);background:var(--card);color:var(--ink);box-shadow:none;text-decoration:none;display:inline-flex;align-items:center}
+.daynav .rec{border-color:var(--accent);color:var(--accent)}
+.wchip{font-weight:700;font-size:11.5px;padding:2px 10px;letter-spacing:.01em}
+.wchip.ewa{background:var(--vio-s);color:var(--vio)}.wchip.kaya{background:var(--accent-soft);color:var(--accent)}
+.ph{background:color-mix(in srgb,var(--accent) 16%,transparent);border-radius:5px;padding:0 3px}
+pre.out,.medit,textarea,input,select{border-radius:12px}
+.glance,.grow{border-color:var(--line)}
+.grow{display:flex;gap:14px;padding:9px 0}
+.grow button,.grow a{font-weight:700}
+.help{font-size:13.5px}
+.mcard pre,.card pre{font-size:15.5px}
+section[id^=day] h2,h2[id^=day]{margin-top:10px}
+@media (max-width:520px){.hero{padding:22px 18px 18px;border-radius:18px}.hero h1{font-size:27px}}
+/* web app additions */
+body { padding-top: max(20px, env(safe-area-inset-top, 0px)); padding-bottom: max(40px, env(safe-area-inset-bottom, 0px)); }
+button { min-height: 44px; }
+.tabs button { min-height: 44px; }
+.daynav button, .daynav a { min-height: 44px; }
+.hero-top { display: flex; gap: 12px; align-items: flex-start; justify-content: space-between; position: relative; z-index: 1; }
+.hero-top > div { min-width: 0; }
+.hero .hbtn { flex: none; background: rgba(255,255,255,.10); border: 1px solid rgba(255,255,255,.35); color: #fff; box-shadow: none; padding: 6px 16px; }
+.hero .hbtn:hover { border-color: #67E8F9; }
+.hero .me { display: block; text-align: right; font-size: 12px; color: #CBD5E1; margin-top: 4px; }
+#status { font-weight: 600; color: #E2E8F0; }
+#status.err { color: #FCA5A5; }
+#status button.link { color: #67E8F9; min-height: 0; padding: 0 2px; font-weight: 700; text-decoration: underline; }
+.login { max-width: 420px; width: 100%; margin: 0 auto; display: flex; flex-direction: column; gap: 14px; }
+.login form { display: flex; flex-direction: column; gap: 12px; }
+.login input { min-height: 46px; font-size: 16px; }
+.login button.primary { min-height: 48px; font-size: 16px; }
+.login .msg { min-height: 1.2em; }
+@supports (-webkit-touch-callout: none) { input, select, textarea { font-size: 16px !important; } }
+</style>
+</head>
+<body>
+<div id="app"></div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script src="config.js"></script>
+<script id="app-script">
+(function () {
+  'use strict';
+  var TASKS = [
+    { k: 'last',  who: 'Ewa',  when: 'Mon, 2h before BE ends', t: 'Last raid + one last call for spare GB tickets (backup: Kaya)' },
+    { k: 'row',   who: 'Ewa',  when: 'Mon, BE ends',      t: 'Add this BE to the log (5 min), then copy the "Last BE stats" post from here' },
+    { k: 'stats', who: 'Ewa',  when: 'Mon',               t: 'Posts "Last BE stats" in Announcements + thanks post' },
+    { k: 'loot',  who: 'Ewa',  when: 'After BE',          t: 'Loot by number of GBs hit' },
+    { k: 'wp',    who: 'Kaya', when: 'Tue',               t: 'Weapons + talents post, Monster Slayer list (box below) + gear scheme reminder' },
+    { k: 'chk',   who: 'Kaya', when: 'Tue',               t: 'One private DM to each member who skipped BE, then a short summary to Ewa' },
+    { k: 'shop',  who: 'Ewa',  when: 'Wed',               t: 'New season shop message, GM matters, DM to members who missed 3 BEs in a row' },
+    { k: 'pv',    who: 'Kaya', when: 'Thu',               t: 'BE preview + raid times (Ewa posts the GB run order as now)' },
+    { k: 'fri',   who: 'Ewa',  when: 'Fri',               t: 'BE start posts as now + raid reminder' },
+    { k: 'raid',  who: 'Kaya', when: 'Sat',               t: 'GB raid call at the fixed UTC time' },
+    { k: 'raid2', who: 'Ewa',  when: 'Sun',               t: 'GB raid call, same UTC time' },
+    { k: 'inv',   who: 'Kaya', when: 'Any day',           t: 'Invite DMs, only guildless New Comers who are getting stronger' }
+  ];
+
+  var CFG = window.PACK_CONFIG || {};
+  function kvDefault(k) { return k === 'week' ? { label: '', stages: '', done: {} } : {}; }
+  /* Shared state is stored one field per kv row ('week:label', 'week:stages', 'week:done:<task>',
+     'msgs:<id>', 'notes:<day>'), so two people editing different fields never overwrite each other.
+     A missing row means the field is empty / unticked / unedited. */
+  function getField(fk) {
+    var p = fk.split(':');
+    if (p[0] === 'week') return p[1] === 'done' ? (S.week.done[p[2]] ? true : undefined) : S.week[p[1]];
+    var v = S[p[0]] && S[p[0]][p[1]];
+    return typeof v === 'string' ? v : undefined;
+  }
+  function setField(fk, v) {
+    var p = fk.split(':');
+    if (p[0] === 'week') {
+      if (p[1] === 'done' && p[2]) { if (v === true) S.week.done[p[2]] = true; else delete S.week.done[p[2]]; }
+      else if (p[1] === 'label' || p[1] === 'stages') S.week[p[1]] = typeof v === 'string' ? v : '';
+    } else if ((p[0] === 'msgs' || p[0] === 'notes') && p[1]) {
+      if (typeof v === 'string') S[p[0]][p[1]] = v; else delete S[p[0]][p[1]];
+    }
+  }
+  function isFieldKey(k) { return /^(week:(label|stages|done:.+)|msgs:.+|notes:.+)$/.test(k); }
+  function kvPending(fk) { return !!(kvTimers[fk] || kvBusy[fk]); }
+
+  var S = { entries: [], week: kvDefault('week'), msgs: {}, notes: {} };
+  var sb = null, user = null, uname = '', channel = null, booted = false, subscribedOnce = false;
+  var readOnly = false, editingId = null, selId = null, resetTimer = null, resetArmed = false;
+  var $ = function (id) { return document.getElementById(id); };
+  var esc = function (s) {
+    return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  };
+  var nf0 = new Intl.NumberFormat('en-US', { maximumFractionDigits: 0 });
+  var nf1 = new Intl.NumberFormat('en-US', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+  var num = function (v) { var n = parseFloat(v); return isFinite(n) ? n : null; };
+  var cnt = function (v) { var n = parseInt(v, 10); return isFinite(n) && n >= 0 ? n : 0; };
+  function parseDate(s) { var p = String(s).split('-'); return new Date(+p[0], (+p[1]) - 1, +p[2]); }
+  function dShort(s) { return parseDate(s).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }); }
+  function dFull(s) { return parseDate(s).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }); }
+  function today() {
+    var d = new Date();
+    return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+  }
+  function ordinal(n) {
+    var m = n % 100, s = 'th';
+    if (m < 11 || m > 13) { s = { 1: 'st', 2: 'nd', 3: 'rd' }[n % 10] || 'th'; }
+    return n + s;
+  }
+  function sorted(dir) {
+    var a = S.entries.slice().sort(function (x, y) { return x.date < y.date ? -1 : x.date > y.date ? 1 : 0; });
+    return dir === 'desc' ? a.reverse() : a;
+  }
+  function hit11(e) { return (e.h30 || 0) + (e.h11 || 0); }
+  function perM(e) { return e.power > 0 ? e.score / e.power : null; }
+  function cap(s) { s = String(s || ''); return s.charAt(0).toUpperCase() + s.slice(1); }
+
+  /* Ewa's exact "Last BE stats" announcement format */
+  function statsPost(e) {
+    return 'Last BE stats - ' + ordinal(e.place) + ' place (' + e.league + '), score ' + nf0.format(e.score) + '\n' +
+      'No. hitting 30 GBs   ' + e.h30 + '   No. hitting 11-29 GBs   ' + e.h11 + '\n' +
+      'No. hitting 6-10 GBs   ' + e.h6 + '   No. hitting 1-5 GBs   ' + e.h1;
+  }
+  /* "score | Location - Stage" lines, highest first, posts of up to 5 lines */
+  function parseStages(text) {
+    var rows = [], skipped = [];
+    String(text || '').split(/\r?\n/).forEach(function (raw) {
+      var line = raw.trim();
+      if (!line) return;
+      var m = line.match(/^(\d{1,3})\s*[|:]\s*(.+?)\s*[-–—]\s*(.+)$/) || line.match(/^(\d{1,3})\s*[|:]\s*(.+?)\s*\/\s*(.+)$/);
+      if (!m) { skipped.push(line); return; }
+      rows.push({ s: +m[1], loc: m[2].trim(), stage: m[3].trim() });
+    });
+    rows.sort(function (a, b) { return b.s - a.s; });
+    var n = rows.length, posts = [];
+    if (n) {
+      var k = Math.ceil(n / 5), size = Math.ceil(n / k);
+      for (var i = 0; i < n; i += size) {
+        posts.push(rows.slice(i, i + size).map(function (r) { return r.s + ' | ' + r.loc + ' - ' + r.stage; }).join('\n'));
+      }
+    }
+    return { posts: posts, skipped: skipped, count: n };
+  }
+
+  /* ---------- saving (Supabase) ---------- */
+  var statusText = '', statusErr = false, savedTimer = null, inflight = 0, kvTimers = {}, kvBusy = {}, kvSkipped = {}, failed = {};
+  function paintStatus() {
+    var el = $('status'); if (!el) return;
+    el.className = statusErr ? 'err' : '';
+    el.innerHTML = esc(statusText) + (statusErr ? ' <button type="button" class="link" data-act="retry">retry</button>' : '');
+  }
+  function setStatus(msg, err) { statusText = msg || ''; statusErr = !!err; clearTimeout(savedTimer); paintStatus(); }
+  function opStart() { inflight++; setStatus('Saving...'); }
+  function opEnd(ok, failKey) {
+    inflight = Math.max(0, inflight - 1);
+    if (!ok) { if (failKey) failed[failKey] = 1; setStatus('Could not save,', true); return; }
+    if (failKey) delete failed[failKey];
+    if (Object.keys(failed).length) { setStatus('Could not save,', true); return; }
+    if (inflight || Object.keys(kvTimers).length) return;
+    setStatus('Saved');
+    savedTimer = setTimeout(function () { if (statusText === 'Saved') setStatus(''); }, 2500);
+  }
+  function stamp() { return { updated_at: new Date().toISOString(), updated_by: user ? user.id : null }; }
+  function saveKv(key, delay) {
+    clearTimeout(kvTimers[key]);
+    setStatus('Saving...');
+    kvTimers[key] = setTimeout(function () { delete kvTimers[key]; writeKv(key); }, delay == null ? 500 : delay);
+  }
+  function writeKv(key) {
+    opStart();
+    kvBusy[key] = (kvBusy[key] || 0) + 1;
+    var v = getField(key);
+    var fin = function (ok, err) {
+      kvBusy[key]--;
+      if (!ok) console.warn('kv save failed', key, err);
+      opEnd(ok, 'kv:' + key);
+      /* someone else changed this same field while ours was saving: show what the server ended up with */
+      if (kvSkipped[key] && !kvPending(key)) { delete kvSkipped[key]; refetchKv(key); }
+    };
+    var q = (v === undefined || v === false) ? sb.from('kv').delete().eq('key', key)
+      : sb.from('kv').upsert(Object.assign({ key: key, value: v }, stamp()));
+    q.then(function (r) { fin(!r.error, r.error); }, function (e) { fin(false, e); });
+  }
+  function refetchKv(key) {
+    sb.from('kv').select('key,value').eq('key', key).then(function (r) {
+      if (r.error || kvPending(key)) return;
+      setField(key, r.data.length ? r.data[0].value : undefined);
+      renderRemote();
+    });
+  }
+  function entryData(e) { var d = {}; for (var k in e) if (k !== 'id') d[k] = e[k]; return d; }
+  function rowToEntry(r) { var e = Object.assign({}, r.data || {}); e.id = r.id; return e; }
+  function upsertLocal(e) {
+    var i = S.entries.findIndex(function (x) { return x.id === e.id; });
+    if (i > -1) S.entries[i] = e; else S.entries.push(e);
+  }
+  function entryOp(q) {
+    opStart();
+    q.then(function (r) { if (r.error) console.warn('entry save failed', r.error); opEnd(!r.error, 'entries'); },
+      function (e) { console.warn('entry save failed', e); opEnd(false, 'entries'); });
+  }
+  function retry() {
+    var keys = Object.keys(failed), reload = false;
+    failed = {};
+    setStatus('');
+    keys.forEach(function (k) { if (k.indexOf('kv:') === 0) writeKv(k.slice(3)); else reload = true; });
+    if (reload) loadAll(true);
+  }
+  function loadAll(quiet) {
+    return Promise.all([
+      sb.from('entries').select('id,data,created_at').order('created_at', { ascending: true }),
+      sb.from('kv').select('key,value')
+    ]).then(function (rs) {
+      var err = rs[0].error || rs[1].error;
+      if (err) throw err;
+      S.entries = rs[0].data.map(rowToEntry);
+      /* rebuild from the server, but keep fields with a local edit still on its way */
+      var keep = {};
+      Object.keys(kvTimers).concat(Object.keys(kvBusy)).forEach(function (k) { if (kvPending(k)) keep[k] = getField(k); });
+      S.week = kvDefault('week'); S.msgs = {}; S.notes = {};
+      rs[1].data.forEach(function (r) { if (isFieldKey(r.key)) setField(r.key, r.value); });
+      for (var kk in keep) setField(kk, keep[kk]);
+      if (editingId && !S.entries.some(function (x) { return x.id === editingId; })) { editingId = null; needForm = true; }
+      if (!booted) bootShell();
+      else if (quiet) renderRemote();
+      else { renderAll(); renderMsgs(); }
+    });
+  }
+
+  /* ---------- realtime ---------- */
+  var pendingRemote = false, needForm = false;
+  function isTyping() {
+    var a = document.activeElement, app = $('app');
+    if (!a || !app || !app.contains(a)) return false;
+    if (a.tagName === 'TEXTAREA') return true;
+    if (a.tagName === 'INPUT') return !/^(checkbox|radio|button|submit|reset)$/i.test(a.type);
+    return false;
+  }
+  /* Re-render after someone else changed data. The entry form is left alone so a half-typed row is never wiped. */
+  /* Only the section holding the focused field waits until the user leaves it; the rest updates right away. */
+  function renderRemote() {
+    if (!booted) return;
+    var a = isTyping() ? document.activeElement : null, held = false;
+    function run(id, fn) { var el = $(id); if (a && el && el.contains(a)) held = true; else fn(); }
+    run('summary', renderSummary); run('chartwrap', renderChart); run('statswrap', renderStatsPost);
+    run('logwrap', renderLog); run('stagewrap', renderStages); run('checkwrap', renderChecklist);
+    if (needForm) run('formwrap', function () { needForm = false; renderForm(); });
+    if (editKey == null) run('pgMsgs', renderMsgs); else held = true;
+    pendingRemote = held;
+  }
+  document.addEventListener('focusout', function () {
+    setTimeout(function () { if (pendingRemote && !isTyping()) renderRemote(); }, 350);
+  });
+  function onEntryChange(p) {
+    if (p.eventType === 'DELETE') {
+      var id = p.old && p.old.id;
+      S.entries = S.entries.filter(function (x) { return x.id !== id; });
+      if (editingId === id) { editingId = null; needForm = true; }
+    } else if (p.new && p.new.id) {
+      upsertLocal(rowToEntry(p.new));
+    }
+    renderRemote();
+  }
+  function onKvChange(p) {
+    var del = p.eventType === 'DELETE', r = del ? p.old : p.new;
+    if (!r || !r.key || !isFieldKey(r.key)) return;
+    if (kvPending(r.key)) { kvSkipped[r.key] = 1; return; } /* our own newer edit wins for now */
+    setField(r.key, del ? undefined : r.value);
+    renderRemote();
+  }
+  function subscribe() {
+    if (channel) return;
+    subscribedOnce = false;
+    channel = sb.channel('pack-db')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'entries' }, onEntryChange)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'kv' }, onKvChange)
+      .subscribe(function (st) {
+        if (st === 'SUBSCRIBED') { if (subscribedOnce && booted) loadAll(true).catch(function () {}); subscribedOnce = true; }
+      });
+  }
+  document.addEventListener('visibilitychange', function () {
+    if (document.visibilityState === 'visible' && booted && sb) loadAll(true).catch(function () {});
+  });
+
+  /* ---------- rendering ---------- */
+  function heroHtml(withUser) {
+    return '<div class="hero"><div class="hero-top"><div><div class="kicker">THE PACK · QUESTLAND</div><h1>Pack Tracker</h1></div>' +
+      (withUser ? '<div><button type="button" class="hbtn" data-act="logout">Log out</button><span class="me">' + esc(cap(uname)) + '</span></div>' : '') + '</div>' +
+      '<p class="sub">Battle Event log, ready messages and the weekly checklist. ' + (withUser ? '<span id="status" aria-live="polite"></span>' : '') + '</p></div>';
+  }
+  function renderTop() { $('top').innerHTML = heroHtml(true); paintStatus(); }
+  function renderSummary() {
+    var a = sorted('asc');
+    if (!a.length) {
+      $('summary').innerHTML = '<div class="panel"><div class="empty">No BE logged yet. After this BE, add the first row below: date, place, league, score and the four GB counts. The "Last BE stats" post is then ready to copy.</div></div>';
+      return;
+    }
+    var last = a[a.length - 1], prev = a.length > 1 ? a[a.length - 2] : null;
+    var delta = prev ? last.score - prev.score : null;
+    var lastN = a.slice(-4), avg = lastN.reduce(function (s, e) { return s + e.score; }, 0) / lastN.length;
+    var h = '<div class="stat"><div class="lab">Last BE score</div><div class="num">' + nf1.format(last.score / 1e6) + 'M</div><div class="hint">' +
+      ordinal(last.place) + ' place (' + esc(last.league) + ')' + (delta != null ? ', ' + (delta >= 0 ? '+' : '') + nf1.format(delta / 1e6) + 'M vs previous' : '') + '</div></div>';
+    h += '<div class="stat"><div class="lab">Average, last ' + lastN.length + ' BE</div><div class="num">' + nf1.format(avg / 1e6) + 'M</div><div class="hint">watch this, not a single week</div></div>';
+    h += '<div class="stat"><div class="lab">Members hitting 11+ GBs</div><div class="num">' + hit11(last) + '</div><div class="hint">' + last.h30 + ' hit all 30. ' + (last.h6 + last.h1) + ' hit 1-10</div></div>';
+    $('summary').innerHTML = '<div class="strip">' + h + '</div>';
+  }
+  function niceTicks(min, max) {
+    var span = max - min || 1, raw = span / 4, mag = Math.pow(10, Math.floor(Math.log10(raw)));
+    var step = [1, 2, 5, 10].map(function (m) { return m * mag; }).find(function (s) { return s >= raw; });
+    var lo = Math.floor(min / step) * step, hi = Math.ceil(max / step) * step, t = [];
+    for (var v = lo; v <= hi + step / 2; v += step) t.push(v);
+    return t;
+  }
+  function renderChart() {
+    var pts = sorted('asc'), box = $('chartwrap');
+    if (pts.length < 2) {
+      box.innerHTML = '<h2>Trend</h2><div class="panel"><div class="empty">' + (pts.length ? 'One BE logged. Add one more to see the trend.' : 'The trend line appears after two BEs are logged.') + '</div></div>';
+      return;
+    }
+    var vals = pts.map(function (e) { return e.score / 1e6; }), ticks = niceTicks(Math.min.apply(null, vals), Math.max.apply(null, vals));
+    var lo = ticks[0], hi = ticks[ticks.length - 1];
+    var W = 720, H = 240, L = 50, R = 18, T = 16, B = 34;
+    var x = function (i) { return L + i * (W - L - R) / (pts.length - 1); };
+    var y = function (v) { return T + (hi - v) * (H - T - B) / (hi - lo || 1); };
+    var s = '<svg class="chart" viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="Guild score in millions by BE">';
+    ticks.forEach(function (t) {
+      s += '<line class="grid" x1="' + L + '" x2="' + (W - R) + '" y1="' + y(t) + '" y2="' + y(t) + '"/>';
+      s += '<text x="' + (L - 8) + '" y="' + (y(t) + 4) + '" text-anchor="end">' + nf0.format(t) + 'M</text>';
+    });
+    s += '<polyline class="ln" points="' + pts.map(function (e, i) { return x(i) + ',' + y(e.score / 1e6); }).join(' ') + '"/>';
+    var step = Math.ceil(pts.length / 8);
+    pts.forEach(function (e, i) {
+      var col = e.colour === 'Blue' ? 'var(--blue)' : e.colour === 'Red' ? 'var(--red)' : 'var(--other)';
+      var isLast = i === pts.length - 1, v = e.score / 1e6;
+      s += '<circle cx="' + x(i) + '" cy="' + y(v) + '" r="' + (isLast ? 6 : 4.5) + '" fill="' + col + '" stroke="var(--card)" stroke-width="2"/>';
+      if (isLast) s += '<text x="' + x(i) + '" y="' + (y(v) - 11) + '" text-anchor="end" style="fill:var(--ink);font-weight:600;font-size:12px">' + nf1.format(v) + 'M</text>';
+      if (i % step === 0 || isLast) s += '<text x="' + x(i) + '" y="' + (H - 12) + '" text-anchor="middle">' + esc(dShort(e.date)) + '</text>';
+    });
+    s += '</svg>';
+    box.innerHTML = '<h2>Trend</h2><div class="panel chart-wrap">' + s + '<div style="color:var(--mute);font-size:13px">Guild score per BE in millions. Dot colour is the week colour (blue, red, grey for other).</div></div>';
+  }
+  function renderStatsPost() {
+    var a = sorted('desc'), box = $('statswrap');
+    if (!a.length) { box.innerHTML = '<div class="panel"><div class="empty">Add a BE to the log and its "Last BE stats" post shows up here in Ewa\'s format.</div></div>'; return; }
+    if (!selId || !a.some(function (e) { return e.id === selId; })) selId = a[0].id;
+    var e = a.find(function (x) { return x.id === selId; });
+    var opts = a.map(function (x) { return '<option value="' + esc(x.id) + '"' + (x.id === selId ? ' selected' : '') + '>' + esc(dFull(x.date)) + '</option>'; }).join('');
+    box.innerHTML = '<div class="panel"><p class="help">Same wording and layout as Ewa\'s own announcement. Copy, then paste into Announcements.</p>' +
+      '<div class="post"><div class="post-head"><label style="flex-direction:row;align-items:center;gap:8px">BE<select id="postSel" style="width:auto">' + opts + '</select></label>' +
+      '<button class="primary" type="button" data-copy="outStats">Copy post</button></div>' +
+      '<pre class="out" id="outStats">' + esc(statsPost(e)) + '</pre></div></div>';
+  }
+  function renderLog() {
+    var a = sorted('desc'), box = $('logwrap');
+    if (!a.length) { box.innerHTML = '<div class="panel"><div class="empty">The log is empty. Rows you add show up here, newest first.</div></div>'; return; }
+    var anyP = a.some(function (e) { return e.power > 0; });
+    var h = '<div class="panel scroll"><table><thead><tr><th>Date</th><th>Week</th><th class="r">Place</th><th>League</th><th class="r">Score</th><th class="r">30 GBs</th><th class="r">11-29</th><th class="r">6-10</th><th class="r">1-5</th>' + (anyP ? '<th class="r">Score / M power</th>' : '') + '<th>By</th>' + (readOnly ? '' : '<th></th>') + '</tr></thead><tbody>';
+    a.forEach(function (e) {
+      var p = perM(e);
+      h += '<tr><td>' + esc(dFull(e.date)) + (e.note ? '<span class="note">' + esc(e.note) + '</span>' : '') + '</td>' +
+        '<td><span class="pill ' + esc(e.colour) + '">' + esc(e.colour) + '</span></td>' +
+        '<td class="r">' + ordinal(e.place) + '</td><td>' + esc(e.league) + '</td>' +
+        '<td class="r"><b>' + nf0.format(e.score) + '</b></td>' +
+        '<td class="r">' + e.h30 + '</td><td class="r">' + e.h11 + '</td><td class="r">' + e.h6 + '</td><td class="r">' + e.h1 + '</td>' +
+        (anyP ? '<td class="r">' + (p != null ? nf1.format(p) : '-') + '</td>' : '') +
+        '<td>' + esc(e.by || '') + '</td>' +
+        (readOnly ? '' : '<td><button class="link" data-act="edit" data-id="' + esc(e.id) + '">Edit</button><button class="link danger" data-act="del" data-id="' + esc(e.id) + '">Delete</button></td>') + '</tr>';
+    });
+    box.innerHTML = h + '</tbody></table></div>';
+  }
+  function renderForm() {
+    var box = $('formwrap');
+    if (readOnly) { box.innerHTML = '<div class="panel"><div class="empty">View only. Adding rows needs edit access.</div></div>'; return; }
+    var e = editingId ? S.entries.find(function (x) { return x.id === editingId; }) : null;
+    var me = cap(uname);
+    var v = e || { date: today(), colour: 'Blue', place: '', league: 'Diamond', score: '', h30: '', h11: '', h6: '', h1: '', power: '', by: (me === 'Ewa' ? 'Ewa' : 'Kaya'), note: '' };
+    var val = function (x) { return x == null ? '' : esc(x); };
+    var sel = function (cur, opts) { return opts.map(function (o) { return '<option' + (o === cur ? ' selected' : '') + '>' + o + '</option>'; }).join(''); };
+    var n = function (id, label, value, extra) { return '<label>' + label + '<input id="' + id + '" type="number" inputmode="numeric" min="0" step="1" value="' + val(value) + '" ' + (extra || '') + '></label>'; };
+    box.innerHTML = '<form class="entry panel" id="entryForm" novalidate>' +
+      '<label>BE date<input id="f_date" type="date" value="' + val(v.date) + '" required></label>' +
+      '<label>Week colour<select id="f_colour">' + sel(v.colour, ['Blue', 'Red', 'Other']) + '</select></label>' +
+      n('f_place', 'Place (1, 2, 3...)', v.place, 'min="1"') +
+      '<label>League<select id="f_league">' + sel(v.league, ['Diamond', 'Elite', 'Other']) + '</select></label>' +
+      n('f_score', 'Guild score', v.score, 'min="1"') +
+      n('f_h30', 'Hitting 30 GBs', v.h30) + n('f_h11', 'Hitting 11-29 GBs', v.h11) + n('f_h6', 'Hitting 6-10 GBs', v.h6) + n('f_h1', 'Hitting 1-5 GBs', v.h1) +
+      '<label>Guild power (M), optional<input id="f_power" type="number" inputmode="decimal" min="0" step="0.1" value="' + val(v.power) + '"></label>' +
+      '<label>Added by<select id="f_by">' + sel(v.by, ['Kaya', 'Ewa']) + '</select></label>' +
+      '<label class="span2">Note<input id="f_note" type="text" maxlength="200" value="' + val(v.note) + '" placeholder="Anything worth remembering about this BE"></label>' +
+      '<div class="form-actions"><button class="primary" type="submit">' + (e ? 'Save changes' : 'Add to log') + '</button>' +
+      (e ? '<button type="button" data-act="cancel">Cancel</button>' : '') + '<span class="msg" id="formMsg" role="alert"></span></div></form>';
+  }
+  function renderStageOut() {
+    var r = parseStages(S.week.stages), box = $('stageOut');
+    if (!box) return;
+    if (!r.count) { box.innerHTML = '<div class="empty">Paste the weekly lines above, one per line, like <code>39 | Jungle - Bushman Caves</code>. The posts appear here.</div>'; return; }
+    var h = '';
+    r.posts.forEach(function (p, i) {
+      h += '<div class="post"><div class="post-head"><span class="lab">Post ' + (i + 1) + ' of ' + r.posts.length + '</span><button class="primary" type="button" data-copy="outStage' + i + '">Copy post ' + (i + 1) + '</button></div><pre class="out" id="outStage' + i + '">' + esc(p) + '</pre></div>';
+    });
+    if (r.skipped.length) h += '<div class="skip">Skipped, not in "score | Location - Stage" form: ' + esc(r.skipped.join(' / ')) + '</div>';
+    box.innerHTML = h;
+  }
+  function renderStages() {
+    $('stagewrap').innerHTML = '<div class="panel"><p class="help">The Monster Slayer (MS) list changes every week. Paste this week\'s lines in any order and get posts in Ewa\'s format: highest score first, up to 5 lines per post, no header.</p>' +
+      '<textarea id="stageIn" spellcheck="false" placeholder="39 | Jungle - Bushman Caves&#10;37 | Tunnels - Hellhole&#10;33 | Ivory Island - Fallen Columns"' + (readOnly ? ' readonly' : '') + '>' + esc(S.week.stages) + '</textarea>' +
+      '<div id="stageOut"></div></div>';
+    renderStageOut();
+  }
+  function renderChecklist() {
+    var box = $('checkwrap');
+    var h = '<div class="panel"><div class="weekbar"><label>This BE<input id="weekLabel" type="text" maxlength="60" value="' + esc(S.week.label) + '" placeholder="e.g. BE 30 Oct - 2 Nov, blue week"' + (readOnly ? ' disabled' : '') + '></label>' +
+      (readOnly ? '' : '<button type="button" data-act="newweek">' + (resetArmed ? 'Confirm: clear ticks and MS lines' : 'Start new week') + '</button>') + '</div><div class="two">';
+    ['Ewa', 'Kaya'].forEach(function (who) {
+      h += '<div><p class="who">' + who + '</p>';
+      TASKS.filter(function (t) { return t.who === who; }).forEach(function (t) {
+        var d = !!S.week.done[t.k];
+        h += '<label class="task' + (d ? ' done' : '') + '"><input type="checkbox" data-task="' + t.k + '"' + (d ? ' checked' : '') + (readOnly ? ' disabled' : '') + '><span class="t"><b>' + esc(t.t) + '</b><br><span class="w">' + esc(t.when) + '</span></span></label>';
+      });
+      h += '</div>';
+    });
+    box.innerHTML = h + '</div></div>';
+  }
+  function renderAll() {
+    renderTop(); renderSummary(); renderChart(); renderStatsPost(); renderLog(); renderForm(); renderStages(); renderChecklist();
+  }
+
+  /* ---------- copy (works on iOS Safari) ---------- */
+  function copyStr(text, cb) {
+    var fallback = function () {
+      var ta = document.createElement('textarea');
+      ta.value = text; ta.setAttribute('readonly', '');
+      ta.style.cssText = 'position:fixed;top:0;left:0;width:1px;height:1px;opacity:0;font-size:16px';
+      document.body.appendChild(ta);
+      ta.focus(); ta.select(); try { ta.setSelectionRange(0, text.length); } catch (e) {}
+      var ok = false; try { ok = document.execCommand('copy'); } catch (e) {}
+      document.body.removeChild(ta);
+      return ok;
+    };
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      try { navigator.clipboard.writeText(text).then(function () { cb(true); }, function () { cb(fallback()); }); return; }
+      catch (e) {}
+    }
+    cb(fallback());
+  }
+
+  /* ---------- events ---------- */
+  function readForm() {
+    var g = function (id) { return $(id).value; };
+    var score = num(g('f_score')), place = num(g('f_place'));
+    if (!g('f_date')) return { err: 'Pick the BE date.' };
+    if (place == null || place < 1) return { err: 'Enter the place, for example 3.' };
+    if (score == null || score <= 0) return { err: 'Enter the guild score, for example 66218400.' };
+    return { entry: { date: g('f_date'), colour: g('f_colour'), place: Math.round(place), league: g('f_league'), score: Math.round(score),
+      h30: cnt(g('f_h30')), h11: cnt(g('f_h11')), h6: cnt(g('f_h6')), h1: cnt(g('f_h1')),
+      power: num(g('f_power')), by: g('f_by'), note: g('f_note').trim() } };
+  }
+  document.addEventListener('submit', function (ev) {
+    if (!ev.target) return;
+    if (ev.target.id === 'loginForm') { ev.preventDefault(); doLogin(); return; }
+    if (ev.target.id !== 'entryForm') return;
+    ev.preventDefault();
+    if (readOnly) return;
+    var r = readForm();
+    if (r.err) { $('formMsg').textContent = r.err; return; }
+    if (editingId) {
+      var id = editingId, i = S.entries.findIndex(function (x) { return x.id === id; });
+      if (i > -1) { r.entry.id = id; S.entries[i] = r.entry; selId = id; }
+      editingId = null;
+      renderAll();
+      entryOp(sb.from('entries').update(Object.assign({ data: entryData(r.entry) }, stamp())).eq('id', id));
+      return;
+    }
+    var btn = ev.target.querySelector('button[type="submit"]');
+    btn.disabled = true; $('formMsg').textContent = '';
+    opStart();
+    sb.from('entries').insert({ data: r.entry }).select('id,data').single().then(function (res) {
+      if (res.error) throw res.error;
+      var e = rowToEntry(res.data);
+      upsertLocal(e); selId = e.id;
+      renderAll();
+      opEnd(true);
+    }).catch(function (err) {
+      console.warn('add failed', err);
+      inflight = Math.max(0, inflight - 1);
+      setStatus('Could not save. Check the connection and tap Add to log again.', false);
+      if (btn.isConnected) btn.disabled = false;
+      var m = $('formMsg'); if (m) m.textContent = 'Not saved yet. Check the connection and try again.';
+    });
+  });
+  function copyText(id, btn) {
+    var pre = $(id); if (!pre) return;
+    var text = pre.textContent, label = btn.getAttribute('data-label') || btn.textContent;
+    btn.setAttribute('data-label', label);
+    copyStr(text, function (ok) {
+      if (!ok) {
+        var rg = document.createRange(); rg.selectNodeContents(pre);
+        var sl = window.getSelection(); sl.removeAllRanges(); sl.addRange(rg);
+      }
+      btn.textContent = ok ? 'Copied' : 'Text selected, copy it';
+      setTimeout(function () { btn.textContent = label; }, 1800);
+    });
+  }
+  document.addEventListener('click', function (ev) {
+    var tb = ev.target.closest ? ev.target.closest('button[data-tab]') : null;
+    if (tb) { var nm = tb.getAttribute('data-tab'); try { location.hash = nm === 'messages' ? 'messages' : ''; } catch (e) {} showTab(nm); return; }
+    var jb = ev.target.closest ? ev.target.closest('button[data-jump]') : null;
+    if (jb) { var tg = $(jb.getAttribute('data-jump')); if (tg && tg.scrollIntoView) tg.scrollIntoView({ behavior: 'smooth', block: 'start' }); return; }
+    var eb = ev.target.closest ? ev.target.closest('button[data-edit],button[data-save],button[data-cancel],button[data-reset]') : null;
+    if (eb && !readOnly) {
+      if (eb.hasAttribute('data-edit')) { editKey = eb.getAttribute('data-edit'); renderMsgs(); var et = document.querySelector('textarea.medit[id^="ed_"]'); if (et) et.focus(); }
+      else if (eb.hasAttribute('data-cancel')) { editKey = null; renderMsgs(); }
+      else if (eb.hasAttribute('data-save')) {
+        var sk = eb.getAttribute('data-save'), ta = $(eb.getAttribute('data-ed'));
+        if (!ta) return;
+        var nv = ta.value.replace(/\s+$/, '');
+        if (!nv) return;
+        if (nv === ORIG[sk]) delete S.msgs[sk]; else S.msgs[sk] = nv;
+        editKey = null; renderMsgs(); saveKv('msgs:' + sk);
+      } else if (eb.hasAttribute('data-reset')) { var rk = eb.getAttribute('data-reset'); delete S.msgs[rk]; renderMsgs(); saveKv('msgs:' + rk); }
+      return;
+    }
+    var ns = ev.target.closest ? ev.target.closest('button[data-nsave],button[data-ncopy]') : null;
+    if (ns) {
+      var ni = (ns.getAttribute('data-nsave') || ns.getAttribute('data-ncopy')), nta = $('nt' + ni);
+      if (!nta) return;
+      if (ns.hasAttribute('data-nsave')) {
+        if (readOnly) return;
+        if (!S.notes) S.notes = {};
+        var nvv = nta.value.replace(/\s+$/, '');
+        if (nvv) S.notes[ni] = nvv; else delete S.notes[ni];
+        nta.defaultValue = nvv; nta.value = nvv;
+        saveKv('notes:' + ni, 0);
+        ns.textContent = 'Saved'; setTimeout(function () { if (ns.isConnected) ns.textContent = 'Save'; }, 1400);
+      } else {
+        var lbl = ns.textContent;
+        copyStr(nta.value, function (ok) { if (!ok) { nta.focus(); nta.select(); } ns.textContent = ok ? 'Copied' : 'Text selected, copy it'; setTimeout(function () { ns.textContent = lbl; }, 1800); });
+      }
+      return;
+    }
+    var c = ev.target.closest ? ev.target.closest('button[data-copy]') : null;
+    if (c) { copyText(c.getAttribute('data-copy'), c); return; }
+    var b = ev.target.closest ? ev.target.closest('button[data-act]') : null;
+    if (!b || readOnly) return;
+    var act = b.getAttribute('data-act'), id = b.getAttribute('data-id');
+    if (act === 'logout') { b.disabled = true; sb.auth.signOut().finally(function () { leave(); }); }
+    else if (act === 'retry') { retry(); }
+    else if (act === 'reload') { showLoading(); loadAll(false).catch(loadFailed); }
+    else if (act === 'edit') { editingId = id; renderForm(); var f = $('entryForm'); if (f && f.scrollIntoView) f.scrollIntoView({ block: 'center' }); }
+    else if (act === 'cancel') { editingId = null; renderForm(); }
+    else if (act === 'del') {
+      if (b.getAttribute('data-armed') !== '1') {
+        b.setAttribute('data-armed', '1'); b.textContent = 'Sure?';
+        setTimeout(function () { if (b.isConnected) { b.removeAttribute('data-armed'); b.textContent = 'Delete'; } }, 3500);
+        return;
+      }
+      S.entries = S.entries.filter(function (x) { return x.id !== id; });
+      if (editingId === id) editingId = null;
+      renderAll();
+      entryOp(sb.from('entries').delete().eq('id', id));
+    } else if (act === 'newweek') {
+      if (!resetArmed) {
+        resetArmed = true; renderChecklist();
+        clearTimeout(resetTimer);
+        resetTimer = setTimeout(function () { resetArmed = false; renderChecklist(); }, 4000);
+        return;
+      }
+      resetArmed = false;
+      Object.keys(S.week.done).forEach(function (tk) { delete S.week.done[tk]; saveKv('week:done:' + tk); });
+      S.week.stages = '';
+      renderStages(); renderChecklist(); saveKv('week:stages');
+    }
+  });
+  document.addEventListener('change', function (ev) {
+    var t = ev.target;
+    if (!t || !t.getAttribute) return;
+    if (t.id === 'postSel') { selId = t.value; renderStatsPost(); return; }
+    if (t.id === 'trToggle') { showTr = t.checked; renderMsgs(); return; }
+    if (readOnly) return;
+    var k = t.getAttribute('data-task');
+    if (k) {
+      if (t.checked) S.week.done[k] = true; else delete S.week.done[k];
+      renderChecklist(); saveKv('week:done:' + k);
+    }
+  });
+  document.addEventListener('input', function (ev) {
+    if (readOnly || !ev.target) return;
+    if (ev.target.id === 'weekLabel') { S.week.label = ev.target.value; saveKv('week:label'); }
+    else if (ev.target.id === 'stageIn') { S.week.stages = ev.target.value; renderStageOut(); saveKv('week:stages'); }
+  });
+
+  var MSGS = [{"s": "Monday", "o": "Ewa (backup: Kaya)", "sub": "BE ends: raid, stats, thanks", "g": [{"w": "Ewa (backup: Kaya)", "t": "Last raid, 2h before BE ends", "n": "Check the BE end time in the game and call the raid 2h before it.", "a": false, "m": [["🏁 Last raid today at [HH] UTC, 2h before BE ends. Use up your leftover GB tickets. Thanks for this week 💙"]]}, {"w": "Ewa (backup: Kaya)", "t": "Last call, one single message", "n": "One message only. No names, no tagging.", "a": false, "m": [["⏰ BE ends in 2h. Spare GB tickets? One hit helps, even 0 damage. Busy or out? No worries, thanks for this week 💙"]]}, {"w": "Ewa (backup: Kaya)", "t": "Last BE stats (Ewa's own post)", "n": "Ewa types the numbers into the Tracker tab, which builds the same post, so she only copies it.", "a": true, "m": [["Last BE stats - [1st] place ([Diamond]), score [66,218,400]\nNo. hitting 30 GBs [5]   No. hitting 11-29 GBs [5]\nNo. hitting 6-10 GBs [2]   No. hitting 1-5 GBs [0]"]]}, {"w": "Ewa (backup: Kaya)", "t": "Thanks post and shoutout (after BE ends)", "n": "", "a": false, "m": [["🏆 BE done! Thanks to everyone who joined. Score: [X], rank: [Y]. Next BE starts Friday 💪"], ["⭐ Shoutout to [name] for [thing]! Great work 🎉"]]}, {"w": "Ewa (backup: Kaya)", "t": "Tracking row", "n": "Ewa adds this BE to the log. See Tracking at the very bottom of this page (5 minutes).", "a": false, "m": []}], "nb": true}, {"s": "Tuesday", "o": "Kaya (backup: Ewa)", "sub": "Weapons, talents and the new Monster Slayer list", "g": [{"w": "Kaya (backup: Ewa)", "t": "Weapons intro (post once, then every week)", "n": "", "a": false, "m": [["🛠️ Weapons matter for BE score! I post the best picks every Tue or Wed. Check Announcements before BE for talents too 😊"], ["🤝 Missing a weapon from the list? Ask us, we will find a stand-in for you 😊"]]}, {"w": "Kaya (backup: Ewa)", "t": "Blue week loadout, ready to post (Announcements)", "n": "Post the one that matches the coming BE. Check names and shop sources in the game first.", "a": true, "m": [["🔵 Blue week loadout\n⚔️ Main hand: Maw of Emptiness (top pick), or Scepter of Void, Regalia, Lichlord's Portal, Intuition, Last Resort, Crystal Cane\n🛡️ Off hand: Jubilee Shield (top pick), or Essence of Creed, Sarcophagus, Doombringer's Dagger, Grinning Retort, Goldencore\n✨ Talents: Red Fist of Frenzy | Blue Chilling Cold | White Lady of the Woods, Mystical Wind, Magic Thief\n💡 9 copies of each fully awaken it. Missing one? Ask us for a stand-in."], ["🔵 Blue week, alternative off hand set\n🛡️ Off hand: Lineage Protector, Arcane Trident, Left Hand of the Thunder God, Darkwing Cover\n✨ Talents: Red Inner Fire | Blue Blue Moon Rising | White Lady of the Woods, Magic Thief"]]}, {"w": "Kaya (backup: Ewa)", "t": "Red week loadout, ready to post (Announcements)", "n": "Post the one that matches the coming BE. Two posts: campaign and bosses, then guild boss.", "a": true, "m": [["🔴 Red week loadout (campaign, easy boss, hard boss)\n⚔️ Main hand: Heartpiercer (weekly shop) or Scepter of the Dark Woods (guild shop). Also good: Galactic Axe, Blade of Stormwarden, Raptor's Revenge, Emerald Oracle\n🛡️ Off hand: Eternal Edge, or Deathspell Dagger, Flag of Justice, Raijin's Anger, Crimson Widow, Metamorphosis\n✨ Talents: Red Liquidator, Bloodlust | Blue Blue Moon Rising, Transcendental Tornado | White Elevation, Crest Guardian, Runic Touch"], ["🔴 Red week, guild boss\n⚔️ Main hand: same as above\n🛡️ Off hand: Abyssal Edge (weekly shop) or Endless Ward (guild shop). Also good: Gate of Atlantis, Roaring Revenge, Pumpkin Piercer, Oathsworn, Eclipse Aegis\n✨ Talents: Red Liquidator, Bloodlust | Blue Blue Moon Rising, Transcendental Tornado | White Crest Guardian, Runic Touch, Lady of the Woods\n💡 Red week needs two different off hands. Guild shop copies work as a stand-in until you own the weekly shop pick."]]}, {"w": "Kaya (backup: Ewa)", "t": "Monster Slayer pings", "n": "Post with the locations below. The week repeats, so the day stays the same.", "a": false, "m": [["📍 New Monster Slayer locations are up in Announcements! New list every week. Ask us if unsure 😊"], ["⚠️ Hold your Monster Slayer gear schemes! Claim them only when Tuesday's Quest Event starts 😊"]]}, {"w": "Kaya (backup: Ewa)", "t": "Monster Slayer locations (new every week, Ewa's own format)", "n": "Fill the lines in the Tracker tab's Monster Slayer box, it builds these posts. Ewa's own format.", "a": true, "m": [["[score] | [Location] - [Stage]\n[score] | [Location] - [Stage]\n[score] | [Location] - [Stage]\n[score] | [Location] - [Stage]\n[score] | [Location] - [Stage]"], ["[score] | [Location] - [Stage]\n[score] | [Location] - [Stage]\n[score] | [Location] - [Stage]\n[score] | [Location] - [Stage]\n[score] | [Location] - [Stage]"]]}, {"w": "Kaya (backup: Ewa)", "t": "Who asks members who skipped BE: Kaya (Tuesday)", "n": "1) Open the guild member list and look at BE points. 2) Everyone who skipped BE gets ONE private DM, never in guild chat, nobody named in public. 3) Ask kindly why (busy, something unclear, missing weapons, break). 4) Answer each reason with the matching message below. 5) At the end of the day send Ewa one short summary. No pressure, no punishment, real life first.", "a": false, "m": []}, {"w": "Kaya (backup: Ewa)", "t": "Check-in DMs for members who skipped BE (Tue, Kaya)", "n": "Private chat only, never in guild chat, nobody named in public. One DM per skip, no pressure, no punishment. Ask the reason kindly, then pick the matching reply.", "a": false, "m": [["Hey [name]! 👋 We missed you in this BE, all good. Is everything okay? Anything unclear? Happy to help 😊"], ["Just curious: busy week, or was something unclear (weapons, tickets, GB)? Either is totally fine 💙"], ["Reply if busy: No worries, real life first! 💙 Join whenever you can, even one hit helps. Glad you're here!"], ["Reply if unclear: Happy to explain! 😊 Short version: use your tickets, one 2-ticket strike per GB level. Want a walkthrough?"], ["Reply if missing weapons: We can sort that out! 🛠️ Tell me what you have and I'll suggest a stand-in for this week."], ["Reply if taking a break: Totally understandable, take the time you need 💙 Your place stays open, come back anytime!"], ["Reply for rules, loot or leaving: Thanks for telling me! I'll pass this to Ewa and she'll get back to you 😊"], ["Welcome back! 🤗 Not much changed, ask us if you need a refresher 😊"], ["To Ewa, end of day: Hi Ewa! BE check-ins done: [n] DMs, [n] replies. Need your call on: [topic or nothing] 😊"]]}], "nb": true}, {"s": "Wednesday", "o": "Ewa (backup: Kaya)", "sub": "New season shop and GM matters", "g": [{"w": "Ewa (backup: Kaya)", "t": "New season shop (Wed)", "n": "Post when a new season shop opens.", "a": false, "m": [["🆕 The new season shop is open! Not sure what to buy? Ask us in the guild chat 😊"]]}, {"w": "Ewa (backup: Kaya)", "t": "Who handles GM matters: Ewa (Wednesday)", "n": "Ewa reads Kaya's summary (2 min). Ewa answers anything about rules, loot or leaving, and sends a kind DM to members who missed 3 BEs in a row. Nobody is removed or punished during the pilot. Members who say they are away are left alone until they return.", "a": false, "m": []}, {"w": "Ewa (backup: Kaya)", "t": "GM check-ins (Wed, Ewa)", "n": "Only for GM matters and for members who missed 3 BEs in a row. Still private and kind. Nobody is removed or punished during the pilot.", "a": false, "m": [["Hi [name], it's Ewa! 👋 We haven't seen you in BE for a few weeks. Everything okay? Just checking in, no pressure 😊"], ["Thanks for letting me know, [name]! 💙 Take the time you need. We'd love to have you back whenever you're ready."], ["Hi [name]! About [rules / loot / leaving]: [answer]. Thanks for asking, happy to talk it through anytime 😊"]]}], "nb": true}, {"s": "Thursday", "o": "Kaya (backup: Ewa)", "sub": "BE preview and the weekend raid plan", "g": [{"w": "Ewa (as now)", "t": "GB run order (Ewa's own, as now)", "n": "Ewa usually posts it on Thursday.", "a": true, "m": [["GB run order:\n[Name] 1-10, [Name] 11-20, [Name] 21-30, [Name] 31-40, [Name] 41-50, [Name] 51-60, [Name] 61-90"]]}, {"w": "Kaya (backup: Ewa)", "t": "BE preview (Thu)", "n": "", "a": false, "m": [["🔥 BE starts Friday! [Blue/Red] week. The weapons and talents post is up. Ask anything, no question is too small 😊"], ["🐺 Weekend GB raid: [day] [HH] UTC. All welcome, even 0 damage hits count. Can't make it? No stress, real life first 💙"]]}, {"w": "Kaya (backup: Ewa)", "t": "Weekend raid times (chat)", "n": "Pick one UTC time and keep it every week.", "a": false, "m": [["🐺 Weekend raids at the same time: Sat + Sun [HH] UTC. Last raid Mon [HH] UTC, 2h before BE ends. Join if you're free 😊"]]}, {"w": "Kaya (backup: Ewa)", "t": "Raid schedule (Announcements)", "n": "", "a": true, "m": [["🐺 Raid schedule this BE\nSat [HH] UTC | Sun [HH] UTC | Mon [HH] UTC (2h before BE ends)\nSame time every day. Join whenever you're free, even 0 damage hits count 💙"]]}], "nb": true}, {"s": "Friday", "o": "Ewa (backup: Kaya)", "sub": "BE starts (about 12:00 UTC)", "g": [{"w": "Ewa (backup: Kaya)", "t": "BE start posts (Ewa's own)", "n": "Ewa's own wording.", "a": true, "m": [["[Blue/Red] battle day! Please wait for the runners to get us to Guild Boss [91] (GB), before hitting the GB with one 2 ticket strike."], ["Everyone involved in the kill gets the same reward of 302k points from GB[91] onwards, so please don't hit a GB multiple times."], ["Everyone at lvl 35+ should participate. If there's anything you don't understand then just ask, we're here to help. Enjoy the battle 💪⚔️"], ["Set up your BE multiplier and loadouts. If there's anything you want clarified then please ask. Let's have some more hitters this week 💪⚔️"], ["We really need everyone to participate. If there's anything you want clarified then please ask. Enjoy the battle 💪⚔️"]]}, {"w": "Ewa (backup: Kaya)", "t": "GB wait until level 91 (Announcements, Fri)", "n": "Same job as Ewa's own posts, in other words. Use these or her own wording, whichever she prefers.", "a": true, "m": [["⛔ GB hits start at level [91]\nPlease wait until the runners get us to GB [91], then use one 2-ticket strike. Thank you 💙"], ["💡 From GB [91] on, everyone who joins the kill gets the same [302k] points, so one hit each is enough. No repeat hits please 😊"], ["💪 Everyone at lvl [35]+ please join. Set your BE multiplier and loadout first. Questions? Ask us, we're here to help!"]]}, {"w": "Ewa (backup: Kaya)", "t": "Guild boss (optional, Ewa's own wording comes first)", "n": "Ewa already posts the GB run order in her own way, so that stays. This is only a spare in case she wants it.", "a": false, "m": [["📢 GB opens now! One 2-ticket strike per level, no super strike unless we say so. Questions? Ask first 😊"]]}, {"w": "Ewa (backup: Kaya)", "t": "Raid reminder for Saturday", "n": "", "a": false, "m": [["📅 Raid tomorrow at [HH] UTC! Join if you have tickets left, even 0 damage hits count. No pressure 💙"]]}], "nb": true}, {"s": "Saturday", "o": "Kaya (backup: Ewa)", "sub": "Raid day 1", "g": [{"w": "Kaya (backup: Ewa)", "t": "Raid call, same UTC time every day", "n": "", "a": false, "m": [["⏰ Guild boss raid today at [HH] UTC! Bring your tickets, all welcome 💪"]]}], "nb": true}, {"s": "Sunday", "o": "Ewa (backup: Kaya)", "sub": "Raid day 2", "g": [{"w": "Ewa (backup: Kaya)", "t": "Raid call, same UTC time as Saturday", "n": "", "a": false, "m": [["⏰ Guild boss raid today at [HH] UTC! Bring your tickets, all welcome 💪"]]}], "nb": true}, {"s": "Any day", "o": "Whoever is online", "sub": "Welcomes and away notices", "g": [{"w": "Whoever is online", "t": "New members and milestones", "n": "", "a": false, "m": [["👋 Welcome [name]! Rules are in the guild tab. Ask us anything about BE or the game, we are happy to help 😊"], ["🤗 Welcome back [name]! Good to see you 💙"], ["🎉 Congrats [name] on [milestone]! Great progress 💪"], ["🤝 Stuck on weapons or talents? Ask here. Help is free, no strings attached, just enjoy the game 😊"]]}, {"w": "Whoever is online", "t": "Away notice and stand-in (Announcements)", "n": "Short and calm, so nobody worries. Replace the names yourself.", "a": true, "m": [["📢 @everyone I'm away from [date] to [date]. [Name] is Stand-In GM and the rest of us keep things running as usual. Thank you [Name]! 🙏"], ["👋 Say hi to our visitors from [Guild]! Look out for each other. See you all on [date] 💙"]]}], "nb": false}, {"s": "Tracking", "o": "Ewa (backup: Kaya)", "sub": "5 minutes after each BE ends", "nb": false, "g": [{"w": "Ewa (backup: Kaya)", "t": "Add this BE to the log (not in the game)", "n": "This lives on a shared page, not in Questland. Open the Tracker, fill in the short form for the BE that just ended and save. The same page builds the 'Last BE stats' post, so you only copy it. Kaya can fix a row too.", "a": false, "m": []}]}, {"s": "Recruiting new players", "o": "Kaya (backup: Ewa)", "sub": "Private chat invites", "nb": false, "g": [{"w": "Kaya (backup: Ewa)", "t": "Who gets an invite", "n": "Invitations are sent ONLY to the stronger players in the New Comers section who do not have a guild. Never message players who are already in a guild. One invite and at most one friendly reminder, then leave it.", "a": false, "m": []}, {"w": "Kaya (backup: Ewa)", "t": "Invite messages (private chat, Kaya)", "n": "Only invite players who have no guild, from the New Comers list, who are getting stronger. Never message players already in a guild. One invite and at most one friendly reminder, then leave it.", "a": false, "m": [["Hi [name]! 👋 You're making great progress! Would you like to join our friendly guild, The Pack? No pressure 😊"], ["We help each other with weapons and builds, play at our own pace, and real life always comes first 💙 Questions? Just ask!"], ["If yes: Wonderful! 🎉 To join: [open Guilds, search The Pack, send a request]. Tell me when done and I'll welcome you 😊"], ["One reminder only: Hi [name]! Just a friendly note, our invite is open whenever you like. Have fun in the game! 😊"], ["If no: No problem at all, thanks for replying! 💙 Wishing you lots of fun and great drops. Bye for now!"]]}]}];
+  var showTr = false;
+  var editKey = null, ORIG = {};
+  function hk(str) { var h = 5381; for (var i = 0; i < str.length; i++) h = ((h << 5) + h + str.charCodeAt(i)) | 0; return 'k' + (h >>> 0).toString(36); }
+  function wcls(w) { return /\+/.test(w.split('(')[0]) ? 'both' : (w.indexOf('Ewa') === 0 ? 'ewa' : (w.indexOf('Kaya') === 0 ? 'kaya' : 'both')); }
+  function chip(w) { return '<span class="wchip ' + wcls(w) + '">' + esc(w) + '</span>'; }
+  function renderMsgs() {
+    if (!S.msgs) S.msgs = {};
+    if (!S.notes) S.notes = {};
+    /* keep unsaved day notes when re-rendering */
+    var drafts = {};
+    var olds = document.querySelectorAll('textarea[id^="nt"]');
+    for (var q = 0; q < olds.length; q++) if (olds[q].value !== olds[q].defaultValue) drafts[olds[q].id] = olds[q].value;
+    var n = 0;
+    var h = '<div class="daynav">' + MSGS.map(function (sec, di) { return '<button type="button" data-jump="day' + di + '"' + (sec.nb === false && sec.s !== 'Any day' ? ' class="rec"' : '') + '>' + esc(sec.s.replace('Recruiting new players', 'Recruiting').replace(/^(\w{3})\w*day$/, '$1').replace('Any day', 'Any')) + '</button>'; }).join('') + '</div><div class="panel"><p class="help" style="margin:0 0 10px">Sorted Monday to Sunday. The chip shows who posts it. Tap Copy, then paste into the game chat or Announcements. ' + (readOnly ? '' : 'Tap Edit to change a message for everyone, Reset brings the original back. ') + 'Highlighted [brackets] are the parts to fill in. Chat messages are 140 characters or less.</p>' +
+      '<details><summary style="cursor:pointer;font-weight:700">Week at a glance</summary>' +
+      MSGS.map(function (sec, di) { return '<div class="grow"><button type="button" class="link" data-jump="day' + di + '">' + esc(sec.s) + '</button><div>' + (sec.o ? chip(sec.o) + '<br>' : '') + sec.g.map(function (g) { return esc(g.t); }).join('<br>') + '</div></div>'; }).join('') + '</details></div>';
+    MSGS.forEach(function (sec, di) {
+      h += '<section id="day' + di + '"><h2>' + esc(sec.s) + ' ' + (sec.o ? chip(sec.o) : '') + '<span class="dsub">' + esc(sec.sub) + '</span></h2>';
+      sec.g.forEach(function (g) {
+        h += '<h3 class="gt">' + esc(g.t) + ' ' + (g.w !== sec.o ? chip(g.w) : '') + '</h3>' + (g.n ? '<p class="help">' + esc(g.n) + '</p>' : '');
+        g.m.forEach(function (m) {
+          var id = 'm' + (n++), key = hk(m[0]);
+          ORIG[key] = m[0];
+          var edited = typeof S.msgs[key] === 'string', text = edited ? S.msgs[key] : m[0], body, btns;
+          if (editKey === key && !readOnly) {
+            body = '<textarea class="medit" id="ed_' + id + '" rows="' + Math.max(2, text.split('\n').length + 1) + '" maxlength="1500">' + esc(text) + '</textarea>';
+            btns = '<button type="button" class="primary" data-save="' + key + '" data-ed="ed_' + id + '">Save</button><button type="button" data-cancel="1">Cancel</button>';
+          } else {
+            body = '<pre id="' + id + '">' + esc(text).replace(/\[[^\]\n]+\]/g, function (x) { return '<span class="ph">' + x + '</span>'; }) + '</pre>' +
+              (edited ? '<div class="gl">Edited' + (readOnly ? '' : ' <button type="button" class="link" data-reset="' + key + '">Reset to original</button>') + '</div>' : '');
+            btns = (readOnly ? '' : '<button type="button" data-edit="' + key + '">Edit</button>') + '<button class="primary" type="button" data-copy="' + id + '">Copy</button>';
+          }
+          h += '<div class="mcard o-' + wcls(g.w) + (g.a ? ' mono' : '') + '"><div class="mb">' + body + '</div><div class="mbtn">' + btns + '</div></div>';
+        });
+      });
+      if (sec.s === 'Tracking') h += '<button class="primary" type="button" data-tab="tracker" style="margin-top:6px">Open the Tracker tab</button>';
+      if (sec.nb) {
+        var nv = (S.notes && typeof S.notes[di] === 'string') ? S.notes[di] : '';
+        h += '<h3 class="gt">Your own message (optional)</h3><p class="help">Optional. Write anything you like for this day. You can change or clear it whenever you want' + (readOnly ? '.' : '. Shared with everyone.') + '</p>' +
+          '<div class="mcard"><div class="mb"><textarea class="medit" id="nt' + di + '" rows="3" maxlength="1500"' + (readOnly ? ' readonly' : '') + ' placeholder="Your message for ' + esc(sec.s) + '...">' + esc(nv) + '</textarea></div><div class="mbtn">' + (readOnly ? '' : '<button type="button" data-nsave="' + di + '">Save</button>') + '<button class="primary" type="button" data-ncopy="' + di + '">Copy</button></div></div>';
+      }
+      h += '</section>';
+    });
+    $('pgMsgs').innerHTML = h;
+    for (var dk in drafts) { var el = $(dk); if (el) el.value = drafts[dk]; }
+  }
+  function showTab(name) {
+    $('pgTracker').hidden = name !== 'tracker';
+    $('pgMsgs').hidden = name !== 'messages';
+    var bs = document.querySelectorAll('.tabs button');
+    for (var i = 0; i < bs.length; i++) bs[i].setAttribute('aria-selected', bs[i].getAttribute('data-tab') === name ? 'true' : 'false');
+  }
+  function tabFromHash() { return (location.hash === '#messages') ? 'messages' : 'tracker'; }
+  window.addEventListener('hashchange', function () { if (booted) showTab(tabFromHash()); });
+
+  /* ---------- login and boot ---------- */
+  function showLogin(msg) {
+    booted = false;
+    $('app').innerHTML = heroHtml(false) +
+      '<div class="login panel"><h2>Log in</h2><form id="loginForm" novalidate>' +
+      '<label>Username<input id="lgUser" name="username" type="text" autocomplete="username" autocapitalize="none" autocorrect="off" spellcheck="false" required></label>' +
+      '<label>Password<input id="lgPass" name="password" type="password" autocomplete="current-password" required></label>' +
+      '<button class="primary" type="submit" id="lgBtn">Log in</button>' +
+      '<span class="msg" id="lgMsg" role="alert">' + esc(msg || '') + '</span></form></div>';
+    var u = $('lgUser'); if (u && !('ontouchstart' in window)) u.focus();
+  }
+  function doLogin() {
+    var u = $('lgUser').value.trim().toLowerCase(), p = $('lgPass').value, m = $('lgMsg'), btn = $('lgBtn');
+    if (!u || !p) { m.textContent = 'Enter your username and password.'; return; }
+    var email = u.indexOf('@') > -1 ? u : u + '@thepack.app';
+    btn.disabled = true; btn.textContent = 'Logging in...'; m.textContent = '';
+    sb.auth.signInWithPassword({ email: email, password: p }).then(function (r) {
+      if (r.error) {
+        var st = r.error.status;
+        m.textContent = st === 429 ? 'Too many tries. Wait a minute and try again.' :
+          (st === 400 || /invalid/i.test(r.error.message || '')) ? 'Wrong username or password.' :
+          'Could not log in. Check the connection and try again.';
+        btn.disabled = false; btn.textContent = 'Log in';
+        return;
+      }
+      enter(r.data.session);
+    }, function () {
+      m.textContent = 'Could not log in. Check the connection and try again.';
+      btn.disabled = false; btn.textContent = 'Log in';
+    });
+  }
+  function showLoading() {
+    $('app').innerHTML = '<div id="top">' + heroHtml(true) + '</div><div class="panel"><div class="empty" id="loadMsg">Loading...</div></div>';
+    booted = false;
+  }
+  function loadFailed(err) {
+    console.warn('load failed', err);
+    var el = $('loadMsg');
+    if (el) el.innerHTML = 'Could not load the data. <button type="button" class="primary" data-act="reload">Try again</button>';
+  }
+  function bootShell() {
+    $('app').innerHTML = '<div id="top"></div><nav class="tabs" aria-label="Pages"><button type="button" data-tab="tracker" aria-selected="true">Tracker</button><button type="button" data-tab="messages" aria-selected="false">Messages</button></nav>' +
+      '<div id="pgTracker" class="pg"><section id="summary"></section><section id="chartwrap"></section>' +
+      '<section><h2>Last BE stats post</h2><div id="statswrap"></div></section>' +
+      '<section><h2>BE log</h2><div id="logwrap"></div></section>' +
+      '<section><h2>Add a BE</h2><div id="formwrap"></div></section>' +
+      '<section><h2>Monster Slayer posts</h2><div id="stagewrap"></div></section>' +
+      '<section><h2>This week</h2><div id="checkwrap"></div></section></div><div id="pgMsgs" class="pg" hidden></div>';
+    booted = true;
+    renderAll(); renderMsgs(); showTab(tabFromHash());
+  }
+  function enter(session) {
+    user = session.user;
+    uname = String(user.email || '').split('@')[0];
+    showLoading();
+    subscribe();
+    loadAll(false).catch(loadFailed);
+  }
+  function leave() {
+    if (channel) { try { sb.removeChannel(channel); } catch (e) {} channel = null; }
+    for (var k in kvTimers) clearTimeout(kvTimers[k]);
+    kvTimers = {}; kvBusy = {}; kvSkipped = {}; failed = {}; inflight = 0; statusText = ''; statusErr = false;
+    S = { entries: [], week: kvDefault('week'), msgs: {}, notes: {} };
+    user = null; uname = ''; editingId = null; selId = null; editKey = null;
+    showLogin();
+  }
+  function start() {
+    if (!window.supabase || !CFG.url || !CFG.anonKey) {
+      $('app').innerHTML = heroHtml(false) + '<div class="panel"><div class="empty">Could not start. Check the connection and reload the page.</div></div>';
+      return;
+    }
+    sb = window.supabase.createClient(CFG.url, CFG.anonKey, {
+      auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: false, storageKey: 'pack-auth' }
+    });
+    sb.auth.onAuthStateChange(function (ev) {
+      if (ev === 'SIGNED_OUT') setTimeout(function () { if (user) leave(); }, 0);
+    });
+    sb.auth.getSession().then(function (r) {
+      var s = r.data && r.data.session;
+      if (s) enter(s); else showLogin();
+    }, function () { showLogin(); });
+  }
+  start();
+})();
+</script>
+</body>
+</html>

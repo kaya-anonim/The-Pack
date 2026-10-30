@@ -1,0 +1,17 @@
+node_modules/
+package-lock.json
+package.json
+tests/
+test-results/
+playwright-report/
+*.log
+.env
+.env.*
+.DS_Store
+# planning/source files stay local (not part of the site)
+SETUP_TR.md
+ARCH_GUVENLI_KURULUM.md
+CLAUDE_CODE_PROMPT.md
+tracker-artifact-source.html
+messages-standalone.html
+*.pdf
