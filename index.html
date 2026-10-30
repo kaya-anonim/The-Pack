@@ -42,11 +42,8 @@ p{margin:0}
 .brand{display:flex;align-items:center;gap:10px}
 .brand svg{width:30px;height:30px;flex:none}
 .brand h1{font-size:22px;font-weight:700;letter-spacing:.01em;font-family:var(--mono);color:var(--head)}
-.who{display:flex;background:var(--sunk);border:1px solid var(--line);border-radius:999px;padding:3px}
-.who button{border:0;background:transparent;color:var(--moon);padding:7px 14px;border-radius:999px;min-height:36px;font-weight:700;opacity:.75}
-.who button[aria-pressed="true"]{opacity:1;background:var(--moon);color:var(--night)}
-.who button[data-who="kaya"][aria-pressed="true"]{background:var(--kaya);color:var(--on-accent)}
-.who button[data-who="ewa"][aria-pressed="true"]{background:var(--ewa);color:var(--on-accent)}
+.me{font-weight:700;font-size:14px;padding:7px 14px;border-radius:999px;background:var(--kaya);color:var(--on-accent)}
+.me.is-ewa{background:var(--ewa)}
 
 .status{margin-top:20px}
 .status h2{color:var(--head);font-size:clamp(26px,5.4vw,40px);font-weight:700;letter-spacing:-.015em;max-width:22ch}
@@ -112,6 +109,9 @@ main[hidden]{display:none}
 .check{flex:none;width:28px;height:28px;border-radius:8px;border:2px solid var(--who-color,var(--kaya));background:var(--card);display:grid;place-items:center;padding:0}
 .check svg{width:16px;height:16px;opacity:0}
 .task.done .check{background:var(--who-color,var(--kaya))}
+.task.done .check.by-kaya{background:var(--kaya);border-color:var(--kaya)}
+.task.done .check.by-ewa{background:var(--ewa);border-color:var(--ewa)}
+.byline{display:block;font-size:12px;font-family:var(--mono);color:var(--mute);margin-top:2px}
 .task.done .check svg{opacity:1;color:var(--on-accent)}
 .task h4{margin:2px 0 0;font-size:17px;font-weight:700;font-family:var(--body);color:var(--head)}
 .task.done h4{text-decoration:line-through}
@@ -169,6 +169,9 @@ details.other summary{cursor:pointer;font-weight:700;color:var(--mute);min-heigh
 .pday li{display:flex;gap:10px;align-items:baseline;font-size:15px}
 .pday li .badge{flex:none;min-width:48px;justify-content:center}
 .pday li.done span:last-child{text-decoration:line-through;color:var(--mute)}
+.pday li.done span:last-child::after{content:" ✓";text-decoration:none;display:inline-block;margin-left:4px;font-weight:700}
+.pday li.by-kaya span:last-child::after{color:var(--kaya)}
+.pday li.by-ewa span:last-child::after{color:var(--ewa)}
 .pday .none{color:var(--mute);font-size:14px;margin-top:8px}
 /* login */
 body.signed-out .sky, body.signed-out .tabs, body.signed-out main, body.signed-out .snack{display:none !important}
@@ -221,6 +224,8 @@ body.signed-out{padding-bottom:0}
 .steps .due.late{background:var(--red-soft);color:var(--red)}
 .steps li.done .t{text-decoration:line-through;color:var(--mute)}
 .steps li.done .n{background:var(--ok-soft);color:var(--ok)}
+.steps li.by-kaya .n{background:var(--kaya);color:var(--on-accent)}
+.steps li.by-ewa .n{background:var(--ewa);color:var(--on-accent)}
 .steps .stepdone{min-width:36px;justify-content:center;padding:0 8px}
 .gone{background:var(--sunk);border-radius:var(--radius-m);padding:12px;margin-top:12px}
 .gone .top{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
@@ -342,10 +347,7 @@ body.booting .login-card{visibility:hidden}
         <div><h1>The Pack</h1><span class="savest" id="saveStatus" aria-live="polite"></span></div>
       </div>
       <div class="topright">
-        <div class="who" role="group" aria-label="Whose tasks to show">
-          <button data-who="kaya" aria-pressed="true">Kaya</button>
-          <button data-who="ewa" aria-pressed="false">Ewa</button>
-        </div>
+        <span class="me" id="meBadge">Kaya</span>
         <button class="logout" data-act="logout" aria-label="Log out" title="Log out"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg></button>
       </div>
     </div>
@@ -632,13 +634,13 @@ Dark Woods - Forsaken Forest 30</textarea>
   function dur(ms){ var d = Math.floor(ms/DAY), h = Math.floor(ms%DAY/HOUR), m = Math.floor(ms%HOUR/6e4);
     if(d>0) return d+"d "+h+"h"; if(h>0) return h+"h "+m+"m"; return m+"m"; }
 
-  // Battle Event: Fri 13:00 UTC to Mon 16:00 UTC. Raids: Sun 17:00 UTC, Mon 14:00 UTC.
+  // Battle Event: Fri 13:00 UTC to Mon 16:00 UTC. Raids: Sun 17:00 UTC, Mon 11:00 UTC.
   function cycles(now){
     var base = utcMonday(now), out = [];
     for(var w=-1; w<=1; w++){
       var mon = base + w*7*DAY;
       out.push({start: mon + 4*DAY + 13*HOUR, end: mon + 7*DAY + 16*HOUR,
-        raids:[mon + 6*DAY + 17*HOUR, mon + 7*DAY + 14*HOUR]});
+        raids:[mon + 6*DAY + 17*HOUR, mon + 7*DAY + 11*HOUR]});
     }
     return out;
   }
@@ -675,19 +677,19 @@ Dark Woods - Forsaken Forest 30</textarea>
   }
 
   // ---------- who is using ----------
-  var who = store.get("who", "kaya");
-  function setWho(w){ who = w; store.set("who", w);
-    $$(".who button").forEach(function(b){ b.setAttribute("aria-pressed", String(b.dataset.who===w)); });
+  // The signed-in account decides who you are. There is no switch: Kaya can't act as Ewa and the other way round.
+  var who = "kaya";
+  function setWho(w){ who = w==="ewa" ? "ewa" : "kaya";
+    var b = $("#meBadge"); if(b){ b.textContent = who==="ewa" ? "Ewa" : "Kaya"; b.classList.toggle("is-ewa", who==="ewa"); }
     renderToday(); }
-  $$(".who button").forEach(function(b){ b.addEventListener("click", function(){ setWho(b.dataset.who); }); });
 
   // ---------- messages ----------
   var M = {
     msPost: "Monster Slayer is up! Best stages this week are in the announcements 🗺️",
     beStart: "{color} battle day! Please wait for the runners to get us to Guild Boss 91 (GB91) before hitting the GB with one 2 ticket strike.\n\nEveryone involved in the kill gets the same reward, so being weak is not an issue. Please don't hit a GB multiple times.\n\nEveryone at lvl 35+ should participate, so update your BE multiplier and loadouts. Any questions then please ask. Enjoy the battle 💪⚔️",
-    gbRemind: "🐺 GB reminder: wait for the runners to reach GB91, then hit each GB once with a 2 ticket strike. Damage doesn't matter, the reward is the same!",
+    gbRemind: "🐺 GB reminder: hit each GB once with a 2 ticket strike. Damage doesn't matter, everyone in the kill gets the same reward!",
     raidSun: "🔔 Pack hunt tonight! We hit the guild boss together at 17:00 UTC. Come along and spend your tickets with us 🐺",
-    raidMon: "🔔 Final hunt of the week at 14:00 UTC. The Battle Event closes at 16:00 UTC, so any tickets left after that are wasted. Let's use them all 💪",
+    raidMon: "🔔 Final hunt of the week at 11:00 UTC. The Battle Event closes at 16:00 UTC, so any tickets left after that are wasted. Let's use them all 💪",
     raidSoon: "🐺 One hour until the pack hunt (17:00 UTC). Get your tickets ready!",
     askKaya: "Hey {name}, we missed you in the last Battle Event. Everything ok? If you're busy, just let us know 🙂",
     askKaya2: "Hi {name}, you've missed the last two Battle Events. Is something getting in the way? Happy to help with tickets or builds.",
@@ -734,13 +736,13 @@ Dark Woods - Forsaken Forest 30</textarea>
   // tasks per weekday (0 = Monday). time = UTC hour shown next to the task.
   // key = stable id for the tick in the database (done:<ISO week>:<key>), so reordering tasks never moves ticks
   var TASKS = [
-    {key:"mon-raid",       who:"ewa",  day:0, title:"Lead the last guild boss raid", time:14, msg:M.raidMon},
+    {key:"mon-raid",       who:"ewa",  day:0, title:"Lead the last guild boss raid", time:11, msg:M.raidMon},
     {key:"mon-mark",       who:"kaya", day:0, title:"Mark who played after the event ends", time:16, link:"be"},
+    {key:"mon-shout",      who:"kaya", day:0, title:"Post the shout-out", time:16, link:"be"},
     {key:"mon-stats",      who:"ewa",  day:0, title:"Post the last BE stats", time:16, msg:"posts:stats"},
     {key:"tue-ms",         who:"kaya", day:1, title:"Post the Monster Slayer stages", msg:"posts:ms"},
     {key:"wed-wtu",        who:"kaya", day:2, title:"Post what to use for the next Battle Event", msg:"posts:wtu"},
     {key:"tue-ask",        who:"kaya", day:1, title:"Ask members who missed 1 or 2 events", link:"be"},
-    {key:"tue-shout",      who:"kaya", day:1, title:"Post the shout-out", link:"be"},
     {key:"wed-checkin",    who:"ewa",  day:2, title:"Check in with members who missed 3 events", link:"be"},
     {key:"thu-runorder",   who:"ewa",  day:3, title:"Post the GB run order", msg:"posts:order"},
     {key:"fri-battle",     who:"ewa",  day:4, title:"Post the battle day announcement", time:13, msg:"be:start"},
@@ -765,7 +767,9 @@ Dark Woods - Forsaken Forest 30</textarea>
     var local = new Date(t).toLocaleTimeString([], {hour:"2-digit", minute:"2-digit"});
     return String(h).padStart(2,"0")+":00 UTC, "+local+" your time"; }
 
-  function taskHTML(t, id, isDone){
+  function byOf(v, t){ return v===true ? (t && t.who) || "kaya" : v; } // old saves stored true
+  function taskHTML(t, id, doneBy){
+    doneBy = doneBy ? byOf(doneBy, t) : null; var isDone = !!doneBy;
     var body = "";
     if(t.msg && t.msg.indexOf("posts:")===0){
       body = '<div class="actions"><button class="btn sm" data-goto="posts" data-post-go="'+t.msg.slice(6)+'">Open in Posts</button></div>';
@@ -780,8 +784,8 @@ Dark Woods - Forsaken Forest 30</textarea>
       body = '<div class="actions"><button class="btn sm" data-goto="'+t.link+'">'+label+'</button></div>';
     }
     return '<li class="task '+(t.who==="ewa"?"is-ewa":"")+(isDone?" done":"")+'" data-id="'+id+'" data-kind="'+(t.daily?"d":"w")+'">'+
-      '<div class="row"><button class="check" aria-label="Mark as done" aria-pressed="'+isDone+'"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5 9-10"/></svg></button>'+
-      '<div style="flex:1;min-width:0"><h4>'+esc(t.title)+'</h4>'+(t.time!==undefined?'<span class="when">'+timeText(t.time)+'</span>':'')+body+'</div></div></li>';
+      '<div class="row"><button class="check'+(doneBy?" by-"+doneBy:"")+'" aria-label="'+(isDone?"Done by "+(doneBy==="ewa"?"Ewa":"Kaya")+". Tap to undo":"Mark as done")+'" aria-pressed="'+isDone+'"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5 9-10"/></svg></button>'+
+      '<div style="flex:1;min-width:0"><h4>'+esc(t.title)+'</h4>'+(doneBy && doneBy!==who ? '<span class="byline">Done by '+(doneBy==="ewa"?"Ewa":"Kaya")+'</span>' : '')+(t.time!==undefined?'<span class="when">'+timeText(t.time)+'</span>':'')+body+'</div></div></li>';
   }
 
   var FULL_DAYS = ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"];
@@ -825,16 +829,16 @@ Dark Woods - Forsaken Forest 30</textarea>
     var note = beNote(d);
     var sub = mine.length ? (left ? left+" of "+mine.length+" left." : "All done.") : "Nothing planned for you.";
     $("#todaySub").textContent = sub + (note ? " "+note+"." : "");
-    $("#todayTasks").innerHTML = mine.length ? mine.map(function(x){ return taskHTML(x.t, x.id, !!done[x.id]); }).join("") : '<li class="empty">Nothing planned for you on '+FULL_DAYS[d]+'. Chat a bit and enjoy the game 🙂</li>';
+    $("#todayTasks").innerHTML = mine.length ? mine.map(function(x){ return taskHTML(x.t, x.id, done[x.id]); }).join("") : '<li class="empty">Nothing planned for you on '+FULL_DAYS[d]+'. Chat a bit and enjoy the game 🙂</li>';
     $("#dailyBox").hidden = !isToday;
     var dl = DAILY.map(function(t){ return {t:t, id:t.key}; });
     var nd = newbiesDue(), lp = leftPending();
     if(nd) dl.unshift({t:{daily:true, who:"kaya", title:"Message new members ("+nd+" due)", link:"recruit"}, id:"new-members"});
     if(lp) dl.unshift({t:{daily:true, who:"ewa", title:"Message players who left ("+lp+")", link:"recruit"}, id:"left-players"});
     dl = dl.filter(function(x){ return x.t.who===who; });
-    $("#dailyTasks").innerHTML = dl.map(function(x){ return taskHTML(x.t, x.id, !!doneDaily[x.id]); }).join("");
+    $("#dailyTasks").innerHTML = dl.map(function(x){ return taskHTML(x.t, x.id, doneDaily[x.id]); }).join("");
     $("#otherSummary").textContent = "See "+otherName+"'s "+(isToday ? "day" : FULL_DAYS[d])+" ("+theirs.length+" task"+(theirs.length===1?"":"s")+")";
-    $("#otherTasks").innerHTML = theirs.length ? theirs.map(function(x){ return taskHTML(x.t, x.id, !!done[x.id]); }).join("") : '<li class="empty">'+otherName+' has nothing planned.</li>';
+    $("#otherTasks").innerHTML = theirs.length ? theirs.map(function(x){ return taskHTML(x.t, x.id, done[x.id]); }).join("") : '<li class="empty">'+otherName+' has nothing planned.</li>';
   }
 
   function renderPlan(){
@@ -844,7 +848,8 @@ Dark Woods - Forsaken Forest 30</textarea>
       var tag = i===t ? '<span class="tag-day now">Today</span>' : "";
       var items = list.length ? '<ul>'+list.map(function(x){
         var tm = x.t.time!==undefined ? " ("+new Date(Date.UTC(2026,0,1,x.t.time)).toLocaleTimeString([], {hour:"2-digit", minute:"2-digit"})+")" : "";
-        return '<li class="'+(done[x.id]?"done":"")+'"><span class="badge '+x.t.who+'">'+(x.t.who==="kaya"?"Kaya":"Ewa")+'</span><span>'+esc(x.t.title)+tm+'</span></li>'; }).join("")+'</ul>' : '<p class="none">No tasks. A quiet day.</p>';
+        var by = done[x.id] ? byOf(done[x.id], x.t) : null;
+        return '<li class="'+(by?"done by-"+by:"")+'"><span class="badge '+x.t.who+'">'+(x.t.who==="kaya"?"Kaya":"Ewa")+'</span><span>'+esc(x.t.title)+tm+'</span></li>'; }).join("")+'</ul>' : '<p class="none">No tasks. A quiet day.</p>';
       return '<button class="pday'+(i===t?" is-today":"")+'" data-day="'+i+'"><h3>'+dn+tag+'</h3>'+(note?'<p class="be-note">'+note+'</p>':'')+items+'</button>';
     }).join("");
   }
@@ -864,8 +869,9 @@ Dark Woods - Forsaken Forest 30</textarea>
   document.addEventListener("click", function(e){
     var c = e.target.closest(".check");
     if(c){ var li = c.closest(".task"), id = li.dataset.id;
-      if(li.dataset.kind==="d") put("daily:"+isoDay()+":"+id, doneDaily[id] ? undefined : true);
-      else put("done:"+isoWeek(Date.now())+":"+id, done[id] ? undefined : true);
+      // a tick stores who ticked it ("kaya" / "ewa"); untick deletes the row
+      if(li.dataset.kind==="d") put("daily:"+isoDay()+":"+id, doneDaily[id] ? undefined : who);
+      else put("done:"+isoWeek(Date.now())+":"+id, done[id] ? undefined : who);
       renderToday(); return; }
     var cp = e.target.closest("[data-copy]");
     if(cp){ var src = $(cp.dataset.copy); copy(src ? src.textContent : "", cp); return; }
@@ -1367,8 +1373,8 @@ Dark Woods - Forsaken Forest 30</textarea>
     $("#newbies").innerHTML = list.length ? list.map(function(r, j){
       var days = Math.round((fromIso(isoDay()) - fromIso(r.joined))/864e5), st = r.steps || [];
       return '<div class="newbie"><p class="field-label">'+esc(r.name)+' <span style="font-weight:400;color:var(--mute)">joined '+(days===0?"today":days===1?"yesterday":days+" days ago")+'</span></p><ol class="steps">'+newbieSteps(r).map(function(s,i){
-        var dl = dueLabel(s.due), isDone = !!st[i];
-        return '<li class="'+(isDone?"done":"")+'"><span class="n">'+(isDone?"✓":(i+1))+'</span><span class="t">'+s.t+'</span>'+(isDone?'':'<span class="due '+dl.cls+'">'+dl.txt+'</span>')+
+        var dl = dueLabel(s.due), isDone = !!st[i], sb = st[i]===true ? "kaya" : st[i];
+        return '<li class="'+(isDone?"done by-"+sb:"")+'"><span class="n">'+(isDone?"✓":(i+1))+'</span><span class="t">'+s.t+'</span>'+(isDone?'':'<span class="due '+dl.cls+'">'+dl.txt+'</span>')+
           '<span hidden id="nb'+j+'-'+i+'">'+esc(fill(s.msg,{name:r.name}))+'</span><button class="btn sm" data-copy="#nb'+j+'-'+i+'">Copy</button>'+
           '<button class="btn sm stepdone" data-step="'+esc(r.name)+'" data-si="'+i+'" aria-label="'+(isDone?"Undo ":"Mark ")+s.t+' as sent">'+(isDone?"↺":"✓")+'</button></li>';
       }).join("")+'</ol></div>';
@@ -1378,7 +1384,7 @@ Dark Woods - Forsaken Forest 30</textarea>
     var b = e.target.closest("[data-step]"); if(!b) return;
     var r = member(b.dataset.step); if(!r) return;
     var st = (r.steps || []).slice(0, 3); while(st.length<3) st.push(false);
-    st[+b.dataset.si] = !st[+b.dataset.si]; patchMember(r.name, {steps:st});
+    var si = +b.dataset.si; st[si] = st[si] ? false : who; patchMember(r.name, {steps:st});
     renderNewbies(); renderToday();
   });
 
@@ -1399,7 +1405,7 @@ Dark Woods - Forsaken Forest 30</textarea>
   }
   $("#leftList").addEventListener("click", function(e){
     var m = e.target.closest("[data-msgd]");
-    if(m){ var xn = m.dataset.msgd, x = D.left[xn]; if(x) put("left:"+xn, Object.assign({}, x, {msgd:!x.msgd})); renderLeft(); renderToday(); return; }
+    if(m){ var xn = m.dataset.msgd, x = D.left[xn]; if(x) put("left:"+xn, Object.assign({}, x, {msgd:x.msgd ? false : who})); renderLeft(); renderToday(); return; }
     var b = e.target.closest("[data-back]");
     if(b){ var yn = b.dataset.back; change(yn+" is back in the guild", function(){ addMember(yn); }); }
   });
@@ -1576,7 +1582,7 @@ Dark Woods - Forsaken Forest 30</textarea>
       return rosterRank(a) - rosterRank(b) || (b.power || 0) - (a.power || 0) || rosterIdx(a.name) - rosterIdx(b.name) || (a.name < b.name ? -1 : a.name > b.name ? 1 : 0);
     });
     syncMembers();
-    leftList = Object.keys(D.left).map(function(n){ return {name:n, on:D.left[n].on || isoDay(), msgd:!!D.left[n].msgd}; })
+    leftList = Object.keys(D.left).map(function(n){ return {name:n, on:D.left[n].on || isoDay(), msgd:D.left[n].msgd || false}; })
       .sort(function(a, b){ return a.on < b.on ? 1 : a.on > b.on ? -1 : (a.name < b.name ? -1 : 1); });
     prospects = Object.keys(D.prospects).map(function(id){ return Object.assign({}, D.prospects[id], {id:id}); })
       .sort(function(a, b){ var x = a.created || "", y = b.created || ""; return x < y ? 1 : x > y ? -1 : 0; });
@@ -1585,8 +1591,9 @@ Dark Woods - Forsaken Forest 30</textarea>
     var ce = curEntry(); stats = Object.assign(clone(STATS_BLANK), (ce && ce.data.stats) || {}, pendingStats);
     var wk = isoWeek(Date.now()) + ":", dk = isoDay() + ":";
     done = {}; doneDaily = {};
-    Object.keys(D.done).forEach(function(k){ if(k.indexOf(wk) === 0) done[k.slice(wk.length)] = true; });
-    Object.keys(D.daily).forEach(function(k){ if(k.indexOf(dk) === 0) doneDaily[k.slice(dk.length)] = true; });
+    // value = who ticked it ("kaya" / "ewa"); old rows hold true, which taskHTML() reads as the task owner
+    Object.keys(D.done).forEach(function(k){ if(k.indexOf(wk) === 0) done[k.slice(wk.length)] = D.done[k]; });
+    Object.keys(D.daily).forEach(function(k){ if(k.indexOf(dk) === 0) doneDaily[k.slice(dk.length)] = D.daily[k]; });
   }
 
   // ---------- save status and retry ----------
@@ -1794,9 +1801,8 @@ Dark Woods - Forsaken Forest 30</textarea>
   }
   function bootApp(){
     booted = true;
-    var u = String(user && user.email || "").split("@")[0].toLowerCase();
-    if(u === "kaya" || u === "ewa") who = u; // the toggle stays, so each can peek at the other's day
-    setWho(who);
+    // the signed-in account decides who you are: ewa@thepack.app = Ewa, anyone else = Kaya
+    setWho(String(user && user.email || "").split("@")[0].toLowerCase() === "ewa" ? "ewa" : "kaya");
     renderEverything();
     showTab(store.get("tab", "today"));
     setSignedIn(true); document.body.classList.remove("booting");
