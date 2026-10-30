@@ -1034,13 +1034,15 @@ Dark Woods - Forsaken Forest 30</textarea>
     if(/NOW|MINUTE|HOUR/.test(t)){ var h = t.match(/(\d+)\s*HOUR/); return h && +h[1]>=24 ? 1 : 0; }
     var d = t.match(/(\d+)\s*DAY/); if(d) return +d[1]; if(/DAY/.test(t)) return 1; return null; }
   var POWER_RE = /^[^A-Za-z]{0,3}P[O0]WER/i;
+  // a POWER line may start with a bit of the round emblem left of the name column ("=e\" POWER:5060488")
+  var POWER_LINE = /^(?:\S{1,3}\s+)?[^A-Za-z]{0,3}P[O0]WER/i;
   // The name line often carries avatar or ONLINE-column noise ("KAYA CN Y 23"): keep its longest real-looking word.
   function pickName(line){
-    if(/^[^A-Za-z]{0,3}LVL|ONLINE|P[O0]WER/i.test(line)) return null;
+    if(/LVL|ONLINE|P[O0]WER/i.test(line)) return null;
     var best = "";
     String(line).split(/\s+/).forEach(function(t){
       t = t.replace(/[’`´]/g,"'").replace(/^[^A-Za-z0-9]+|[^A-Za-z0-9]+$/g,"");
-      if(t.length<2 || t.length>20 || !/[A-Za-z]/.test(t) || /^LVL/i.test(t) || /^P[O0]WER/i.test(t) || !/^[A-Za-z0-9'_.\-]+$/.test(t)) return;
+      if(t.length<2 || t.length>20 || !/[A-Za-z]/.test(t) || /^(LVL|P[O0]WER|LEVEL|GUILD|MEMBERS?|TYPE)/i.test(t) || !/^[A-Za-z0-9'_.\-]+$/.test(t)) return;
       if(t.length > best.length) best = t;
     });
     return best || null;
@@ -1069,9 +1071,9 @@ Dark Woods - Forsaken Forest 30</textarea>
       var mm = up.match(/MEMBERS:\s*(\d+)\s*\/\s*\d+/); if(mm && !gm) total = total || +mm[1];
       if(ROLES[up]) role = ROLES[up];
       var on = up.match(/ONLINE:\s*([A-Z0-9 ]+?AGO|NOW)/); if(on) online = on[1];
-      if(!POWER_RE.test(l) || i===0) return;
+      if(!POWER_LINE.test(l) || i===0) return;
       var name = pickName(lines[i-1]); if(!name) return;
-      out.push({name:name, power:readPower(l.replace(POWER_RE, "")), role:role, seen:online!==null ? seenDays(online) : null});
+      out.push({name:name, power:readPower(l.replace(POWER_LINE, "")), role:role, seen:online!==null ? seenDays(online) : null});
       online = null;
     });
     return {members:out, total:total};
@@ -1089,12 +1091,13 @@ Dark Woods - Forsaken Forest 30</textarea>
     return {members:c.members.length ? c.members : f.members, total:f.total || c.total};
   }
   // Where the name column is in the full image. lines = OCR lines with word boxes, W = image width.
-  // Left: the POWER labels. Right: the small guild-level badge at the end of each "LVL…" line, where the avatar starts.
+  // Left: the members' POWER labels (median, not the "GUILD POWER" header). Right: the small guild-level badge at the end of each "LVL…" line, where the avatar starts.
   function cropBounds(lines, W){
     var px = [], rx = [], BADGE = /^[A-Za-z]{0,2}L[A-Za-z]?[.,]?\d{0,2}$/;
     (lines||[]).forEach(function(l){
       var ws = (l.words||[]).filter(function(w){ return w && w.bbox; }).slice().sort(function(a, b){ return a.bbox.x0 - b.bbox.x0; });
-      ws.forEach(function(w){ if(POWER_RE.test(w.text)) px.push(w.bbox.x0); });
+      // skip the "GUILD POWER:" header, which sits further left than the members' POWER labels
+      ws.forEach(function(w, k){ if(POWER_RE.test(w.text) && !ws.slice(0, k).some(function(v){ return /GUILD/i.test(v.text); })) px.push(w.bbox.x0); });
       if(!ws.length || !/^[^A-Za-z]{0,3}LVL/i.test(ws[0].text)) return;
       var end = null;
       for(var k = /\d/.test(ws[0].text) ? 1 : 2; k<ws.length; k++){
@@ -1103,8 +1106,8 @@ Dark Woods - Forsaken Forest 30</textarea>
       }
       if(end!==null) rx.push(end);
     });
-    rx.sort(function(a, b){ return a - b; });
-    var left = px.length ? Math.min.apply(null, px) - W*.01 : null;
+    rx.sort(function(a, b){ return a - b; }); px.sort(function(a, b){ return a - b; });
+    var left = px.length ? px[Math.floor(px.length/2)] - W*.01 : null;
     var right = rx.length ? rx[Math.floor(rx.length/2)] + W*.01 : null;
     if(left===null || left<0 || left>W*.35) left = W*.13;
     if(right===null || right<left+W*.1 || right>W*.7) right = W*.41;
