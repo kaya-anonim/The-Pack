@@ -18,3 +18,5 @@ messages-standalone.html
 # old page backup and the design source (index.html is built from it)
 index.old.html
 the-pack.html
+# local Claude Code settings
+.claude/settings.local.json
