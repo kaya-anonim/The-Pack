@@ -1228,7 +1228,17 @@ Dark Woods - Forsaken Forest 30</textarea>
         return "📍 "+(r.stage ? r.stage+" in "+r.loc : r.loc)+": "+r.s+" pts"; }).join("\n") : "";
     $("#msOut").innerHTML = text ? postsHTML(text, "ms") : '<p class="empty">Add at least one line like Terra Torrid - Furnace of Doom 39.</p>';
   }
-  $("#msIn").addEventListener("input", renderMS);
+  // The stages box is shared as kv ms:<ISO week> (string). No row yet this week = the sample text below.
+  var MS_DEFAULT = $("#msIn").value;
+  function renderMSInput(){
+    var v = D.ms[isoWeek(Date.now())], want = typeof v === "string" ? v : MS_DEFAULT, box = $("#msIn");
+    if(document.activeElement !== box && box.value !== want) box.value = want;
+    renderMS();
+  }
+  $("#msIn").addEventListener("input", function(){
+    var k = "ms:"+isoWeek(Date.now());
+    setField(k, $("#msIn").value); saveKv(k); derive(); renderMS();
+  });
 
   // GB run order (Ewa's format): "Arthas 1-10, Krys 11-20, ... Aliz 61-90"
   var RUN_TOP = 90;
@@ -1453,13 +1463,13 @@ Dark Woods - Forsaken Forest 30</textarea>
   // ================= shared data (Supabase) =================
   // Every shared setting is its own kv row, so two people saving at once never overwrite each other:
   //   member:<name>  left:<name>  prospect:<id>  gear:<week>:<group>  picks:<week>:<group>  be:week  runorder
-  //   done:<ISO week>:<task>  daily:<YYYY-MM-DD>:<task>  msgs:<hash>
+  //   done:<ISO week>:<task>  daily:<YYYY-MM-DD>:<task>  msgs:<hash>  ms:<ISO week>
   // A missing row means "not set" (the defaults in the code apply). One Battle Event = one row in entries.
   var CFG = window.PACK_CONFIG || {};
   var sb = null, user = null, channel = null, booted = false, subscribedOnce = false;
   function clone(v){ return v === undefined ? undefined : JSON.parse(JSON.stringify(v)); }
-  var KVMAP = {member:"members", left:"left", prospect:"prospects", gear:"gear", picks:"picks", done:"done", daily:"daily", msgs:"msgs", away:"legacyAway"};
-  function blankD(){ return {members:{}, left:{}, prospects:{}, gear:{}, picks:{}, done:{}, daily:{}, msgs:{}, legacyAway:{}, legacyTrue:{}, beWeek:null, runorder:null}; }
+  var KVMAP = {member:"members", left:"left", prospect:"prospects", gear:"gear", picks:"picks", done:"done", daily:"daily", msgs:"msgs", ms:"ms", away:"legacyAway"};
+  function blankD(){ return {members:{}, left:{}, prospects:{}, gear:{}, picks:{}, done:{}, daily:{}, msgs:{}, ms:{}, legacyAway:{}, legacyTrue:{}, beWeek:null, runorder:null}; }
   var D = blankD();
   function splitKey(k){ var i = k.indexOf(":"); return i < 0 ? [k, ""] : [k.slice(0, i), k.slice(i + 1)]; }
   function isFieldKey(k){ if(k === "be:week" || k === "runorder") return true; var p = splitKey(k); return !!KVMAP[p[0]] && !!p[1]; }
@@ -1481,7 +1491,7 @@ Dark Woods - Forsaken Forest 30</textarea>
       if(v && typeof v !== "object") v = undefined;
     }
     if((name === "gear" || name === "picks") && !Array.isArray(v)) v = undefined;
-    if(name === "msgs" && typeof v !== "string") v = undefined;
+    if((name === "msgs" || name === "ms") && typeof v !== "string") v = undefined;
     if((name === "left" || name === "prospects") && (!v || typeof v !== "object")) v = undefined;
     if(v === undefined || v === false) delete D[name][id]; else D[name][id] = v;
   }
@@ -1688,14 +1698,14 @@ Dark Woods - Forsaken Forest 30</textarea>
     function run(sel, fn){ var el = $(sel); if(el && ((a && el.contains(a)) || el.querySelector(".editbox"))) held = true; else fn(); }
     derive();
     run("#v-today", renderToday); run("#v-be", renderBE);
-    run('[data-postview="wtu"]', renderWTU); run('[data-postview="order"]', renderOrder); run('[data-postview="stats"]', renderStats);
+    run('[data-postview="wtu"]', renderWTU); run('[data-postview="ms"]', renderMSInput); run('[data-postview="order"]', renderOrder); run('[data-postview="stats"]', renderStats);
     run("#prospects", renderProspects); run("#newbies", renderNewbies); run("#leftList", renderLeft);
     renderUndo(); refreshEdits();
     pendingRemote = held;
   }
   function renderEverything(){
     derive();
-    renderToday(); renderBE(); renderWTU(); renderOrder(); renderStats(); renderProspects(); renderNewbies(); renderLeft(); renderUndo();
+    renderToday(); renderBE(); renderWTU(); renderMSInput(); renderOrder(); renderStats(); renderProspects(); renderNewbies(); renderLeft(); renderUndo();
     refreshEdits();
   }
   // show edits saved by the other person (or their Reset) on messages that are already on screen
@@ -1787,7 +1797,7 @@ Dark Woods - Forsaken Forest 30</textarea>
     var u = String(user && user.email || "").split("@")[0].toLowerCase();
     if(u === "kaya" || u === "ewa") who = u; // the toggle stays, so each can peek at the other's day
     setWho(who);
-    renderEverything(); renderMS();
+    renderEverything();
     showTab(store.get("tab", "today"));
     setSignedIn(true); document.body.classList.remove("booting");
     loginBtn(false, "Sign in"); $("#lgPass").value = ""; loginMsg("");
