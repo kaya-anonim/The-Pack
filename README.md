@@ -13,6 +13,13 @@ Static files only: `index.html` + `config.js`. Data, login and live updates come
 ## Configuration
 `config.js` holds the Supabase project URL and the **publishable (anon) key**. That key is meant to be public: Row Level Security (see `schema.sql`) lets only signed-in users read or write. Never put the `service_role` / secret key in this repo.
 
+## Data
+Everything shared lives in two tables (see `schema.sql`):
+- `entries`: one row per Battle Event. `data` = `{ date, color, played: [], missed: [], away: [], stats: { place, league, score, h30, h11, h6, h1 } }`. Marking who played edits the entry of the Battle Event that ended last.
+- `kv`: one row per setting, so two people saving at once never overwrite each other: `member:<name>`, `left:<name>`, `prospect:<id>`, `gear:<week>:<group>`, `picks:<week>:<group>`, `be:week`, `runorder`, `done:<ISO week>:<task>`, `daily:<YYYY-MM-DD>:<task>`, `msgs:<hash>` (edited message text). A missing row means the default from the code.
+
+The open tab, the Kaya/Ewa toggle and the undo history stay in the browser.
+
 ## Accounts
 Sign-ups are disabled in Supabase. Users are created in Supabase > Authentication > Users as `<name>@thepack.app`; in the app you log in with just `<name>`.
 

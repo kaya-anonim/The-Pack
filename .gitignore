@@ -15,3 +15,6 @@ CLAUDE_CODE_PROMPT.md
 tracker-artifact-source.html
 messages-standalone.html
 *.pdf
+# old page backup and the design source (index.html is built from it)
+index.old.html
+the-pack.html
