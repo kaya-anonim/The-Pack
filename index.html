@@ -1006,20 +1006,25 @@ Dark Woods - Forsaken Forest 30</textarea>
   function renderAll(){ derive(); renderBE(); renderOrder(); renderProspects(); renderNewbies(); renderLeft(); renderUndo(); renderToday(); }
 
   // ---------- reading names from screenshots ----------
-  var OCR_URL = "https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js";
+  var OCR_URL = "https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js";
   function loadOCR(){ return new Promise(function(res, rej){
     if(window.Tesseract) return res(window.Tesseract);
     var sc = document.createElement("script"); sc.src = OCR_URL; sc.onload = function(){ res(window.Tesseract); }; sc.onerror = function(){ rej(new Error("load")); };
     document.head.appendChild(sc); }); }
-  function prepImage(file){ return new Promise(function(res){
-    var img = new Image(); img.onload = function(){
-      var k = Math.min(2, 2400/img.width), c = document.createElement("canvas"); c.width = img.width*k; c.height = img.height*k;
+  function prepImage(file){ return new Promise(function(res, rej){
+    var img = new Image(), url = URL.createObjectURL(file);
+    img.onerror = function(){ URL.revokeObjectURL(url); rej(new Error("image")); };
+    img.onload = function(){
+      URL.revokeObjectURL(url);
+      var k = Math.min(2, 2400/img.width), c = document.createElement("canvas"); c.width = Math.round(img.width*k); c.height = Math.round(img.height*k);
       var x = c.getContext("2d"); x.drawImage(img, 0, 0, c.width, c.height);
       var d = x.getImageData(0, 0, c.width, c.height), p = d.data, sum = 0;
       for(var i=0; i<p.length; i+=4){ var g = .299*p[i]+.587*p[i+1]+.114*p[i+2]; p[i]=p[i+1]=p[i+2]=g; sum += g; }
       if(sum/(p.length/4) < 128){ for(var j=0; j<p.length; j+=4){ p[j]=p[j+1]=p[j+2]=255-p[j]; } }
       x.putImageData(d, 0, 0); res(c); };
-    img.src = URL.createObjectURL(file); }); }
+    img.src = url; }); }
+
+  // ocr-parse: plain functions with no page access. tests/ocr.mjs cuts this block out and runs it in Node.
   // compare names the way the game font confuses them: 1/I/l, 0/O, 5/S
   function norm(s){ return String(s).toLowerCase().replace(/[1l|!]/g,"i").replace(/0/g,"o").replace(/5/g,"s").replace(/[^a-z0-9]/g,""); }
   function lev(a, b){ var m = a.length, n = b.length, d = []; for(var i=0;i<=m;i++){ d[i]=[i]; } for(var j=0;j<=n;j++) d[0][j]=j;
@@ -1028,6 +1033,31 @@ Dark Woods - Forsaken Forest 30</textarea>
   function seenDays(t){ t = t.toUpperCase();
     if(/NOW|MINUTE|HOUR/.test(t)){ var h = t.match(/(\d+)\s*HOUR/); return h && +h[1]>=24 ? 1 : 0; }
     var d = t.match(/(\d+)\s*DAY/); if(d) return +d[1]; if(/DAY/.test(t)) return 1; return null; }
+  var POWER_RE = /^[^A-Za-z]{0,3}P[O0]WER/i;
+  // The name line often carries avatar or ONLINE-column noise ("KAYA CN Y 23"): keep its longest real-looking word.
+  function pickName(line){
+    if(/^[^A-Za-z]{0,3}LVL|ONLINE|P[O0]WER/i.test(line)) return null;
+    var best = "";
+    String(line).split(/\s+/).forEach(function(t){
+      t = t.replace(/[’`´]/g,"'").replace(/^[^A-Za-z0-9]+|[^A-Za-z0-9]+$/g,"");
+      if(t.length<2 || t.length>20 || !/[A-Za-z]/.test(t) || /^LVL/i.test(t) || /^P[O0]WER/i.test(t) || !/^[A-Za-z0-9'_.\-]+$/.test(t)) return;
+      if(t.length > best.length) best = t;
+    });
+    return best || null;
+  }
+  // "POWER: 19 554 854 1 A" -> 19554854. Digit groups after the first must be whole thousands groups ("541341" = two),
+  // so a stray digit or letter at the end is ignored.
+  function readPower(rest){
+    var toks = String(rest).replace(/^[\s:;.,]+/,"").split(/\s+/), out = "";
+    function dig(s){ return s.toUpperCase().replace(/O/g,"0").replace(/[IL|\]]/g,"1"); }
+    for(var k=0; k<toks.length; k++){
+      var t = dig(toks[k]);
+      if(k===0){ var m = t.match(/^\d+(?:[,.]\d{3})*/); if(!m) return null; out = m[0].replace(/[,.]/g,""); if(m[0].length < t.length) break; }
+      else if(/^\d+$/.test(t) && t.length%3===0) out += t;
+      else break;
+    }
+    return out ? +out : null;
+  }
   // Members list layout: "LVL. 100 ... ONLINE: 2 HOURS AGO" / "NAME" / "POWER: 19 978 622". The name is the line right above POWER.
   function parseMembersText(text){
     var lines = String(text).split(/\n/).map(function(l){ return l.trim(); }).filter(Boolean);
@@ -1039,15 +1069,46 @@ Dark Woods - Forsaken Forest 30</textarea>
       var mm = up.match(/MEMBERS:\s*(\d+)\s*\/\s*\d+/); if(mm && !gm) total = total || +mm[1];
       if(ROLES[up]) role = ROLES[up];
       var on = up.match(/ONLINE:\s*([A-Z0-9 ]+?AGO|NOW)/); if(on) online = on[1];
-      var pw = up.match(/^POWER\s*[:;.]?\s*([0-9OIL\s]{3,})/);
-      if(!pw || i===0) return;
-      var name = lines[i-1].replace(/^[^A-Za-z0-9]+|[^A-Za-z0-9'’]+$/g,"");
-      if(!/^[A-Za-z0-9'’_.\-]{2,20}$/.test(name) || /^LVL/i.test(name)) return;
-      var power = +pw[1].replace(/O/g,"0").replace(/[IL]/g,"1").replace(/\s/g,"");
-      out.push({name:name, power:power || null, role:role, seen:online!==null ? seenDays(online) : null});
+      if(!POWER_RE.test(l) || i===0) return;
+      var name = pickName(lines[i-1]); if(!name) return;
+      out.push({name:name, power:readPower(l.replace(POWER_RE, "")), role:role, seen:online!==null ? seenDays(online) : null});
       online = null;
     });
     return {members:out, total:total};
+  }
+  // Names and power come from the name-column crop; the total and "last online" only exist in the full image.
+  function mergeShot(fullText, cropText){
+    var f = parseMembersText(fullText), c = parseMembersText(cropText);
+    c.members.forEach(function(m){
+      var hit = f.members.filter(function(x){ return lev(norm(x.name), norm(m.name)) <= 1; })[0];
+      if(!hit) return;
+      if(m.seen===null) m.seen = hit.seen; if(!m.role) m.role = hit.role;
+      // the crop can cut the end of a long power number: then the full image has the rest
+      if(hit.power && (!m.power || (hit.power > m.power && String(hit.power).indexOf(String(m.power))===0))) m.power = hit.power;
+    });
+    return {members:c.members.length ? c.members : f.members, total:f.total || c.total};
+  }
+  // Where the name column is in the full image. lines = OCR lines with word boxes, W = image width.
+  // Left: the POWER labels. Right: the small guild-level badge at the end of each "LVL…" line, where the avatar starts.
+  function cropBounds(lines, W){
+    var px = [], rx = [], BADGE = /^[A-Za-z]{0,2}L[A-Za-z]?[.,]?\d{0,2}$/;
+    (lines||[]).forEach(function(l){
+      var ws = (l.words||[]).filter(function(w){ return w && w.bbox; }).slice().sort(function(a, b){ return a.bbox.x0 - b.bbox.x0; });
+      ws.forEach(function(w){ if(POWER_RE.test(w.text)) px.push(w.bbox.x0); });
+      if(!ws.length || !/^[^A-Za-z]{0,3}LVL/i.test(ws[0].text)) return;
+      var end = null;
+      for(var k = /\d/.test(ws[0].text) ? 1 : 2; k<ws.length; k++){
+        var t = ws[k].text.trim(); if(/ONLINE/i.test(t)) break;
+        if(BADGE.test(t) && t.length<=6){ end = ws[k].bbox.x1; if(ws[k+1] && /^\d{1,2}$/.test(ws[k+1].text.trim())) end = ws[k+1].bbox.x1; }
+      }
+      if(end!==null) rx.push(end);
+    });
+    rx.sort(function(a, b){ return a - b; });
+    var left = px.length ? Math.min.apply(null, px) - W*.01 : null;
+    var right = rx.length ? rx[Math.floor(rx.length/2)] + W*.01 : null;
+    if(left===null || left<0 || left>W*.35) left = W*.13;
+    if(right===null || right<left+W*.1 || right>W*.7) right = W*.41;
+    return {left:Math.round(left), right:Math.round(right)};
   }
   function matchScan(scan){
     var seen = {}, fresh = [], info = {};
@@ -1060,6 +1121,8 @@ Dark Woods - Forsaken Forest 30</textarea>
     var missing = MEMBERS.filter(function(n){ return !seen[n]; });
     return {seen:Object.keys(seen), fresh:fresh, missing:missing, info:info, total:scan.total};
   }
+  // /ocr-parse
+
   window.__pack = {parseMembersText:parseMembersText, matchScan:matchScan, applyScan:function(scan){ return applyScan(scan); }};
   function applyScan(scan){
     var m = matchScan(scan), found = m.seen.length + m.fresh.length;
@@ -1078,9 +1141,36 @@ Dark Woods - Forsaken Forest 30</textarea>
       '<p><span class="lbl">Found:</span> '+found+(m.total ? ' of '+m.total+' members' : ' members')+'.</p>'+
       (m.fresh.length ? '<p><span class="lbl">Added:</span> '+m.fresh.map(function(f){ return esc(niceName(f.name)); }).join(", ")+'</p>' : '')+
       (willRemove.length ? '<p><span class="lbl">Moved to "Left the guild":</span> '+willRemove.map(esc).join(", ")+'</p>' : '')+
+      (!full && m.missing.length ? '<p><span class="lbl">Not found:</span> '+m.missing.map(esc).join(", ")+'</p>' : '')+
       (short ? '<p>'+short+' member'+(short>1?"s are":" is")+' missing from the screenshots, so nobody was moved to "Left the guild". Add a screenshot of the part you skipped.</p>' : '')+
       (!m.fresh.length && !willRemove.length ? '<p>No one joined or left. Power and last online were updated.</p>' : '<p>Something wrong? Tap Undo.</p>');
     return m;
+  }
+
+  // One OCR worker for every pass and every screenshot. Each screenshot gets 60 s; a stuck one is skipped.
+  var SHOT_TIMEOUT = 60000, LOAD_TIMEOUT = 120000, ocrWorker = null, onOcrProgress = null;
+  function withTimeout(p, ms){ var t; return Promise.race([p, new Promise(function(_, rej){ t = setTimeout(function(){ rej(new Error("timeout")); }, ms); })])
+    .then(function(v){ clearTimeout(t); return v; }, function(e){ clearTimeout(t); throw e; }); }
+  function getWorker(T){
+    if(!ocrWorker) ocrWorker = T.createWorker("eng", 1, {logger:function(m){ if(onOcrProgress && typeof m.progress==="number") onOcrProgress(m.status, m.progress); }});
+    return ocrWorker; }
+  function dropWorker(){ var w = ocrWorker; ocrWorker = null; if(w) w.then(function(x){ return x.terminate(); }).catch(function(){}); }
+  function ocrLines(data){
+    if(data.lines && data.lines.length) return data.lines;
+    var out = []; (data.blocks||[]).forEach(function(b){ (b.paragraphs||[]).forEach(function(p){ (p.lines||[]).forEach(function(l){ out.push(l); }); }); });
+    if(!out.length && data.words) out.push({words:data.words});
+    return out; }
+  function readShot(w, file, setPass){
+    return prepImage(file).then(function(c){
+      setPass(0);
+      return w.recognize(c, {}, {text:true, blocks:true}).then(function(r){
+        var b = cropBounds(ocrLines(r.data), c.width), cc = document.createElement("canvas");
+        cc.width = b.right - b.left; cc.height = c.height;
+        cc.getContext("2d").drawImage(c, b.left, 0, cc.width, c.height, 0, 0, cc.width, c.height);
+        setPass(1);
+        return w.recognize(cc, {}, {text:true}).then(function(r2){ return mergeShot(r.data.text, r2.data.text); });
+      });
+    });
   }
   $("#shots").addEventListener("change", function(e){
     var files = Array.prototype.slice.call(e.target.files||[]);
@@ -1089,20 +1179,39 @@ Dark Woods - Forsaken Forest 30</textarea>
     $("#thumbs").innerHTML = "";
     files.forEach(function(f){ var img = document.createElement("img"); img.alt = f.name; img.src = URL.createObjectURL(f); $("#thumbs").appendChild(img); });
     $("#scanRes").hidden = true;
-    $("#shotNote").textContent = "Loading the name reader…";
+    var note = $("#shotNote"), i = 0, pass = 0, failed = [], all = {members:[], total:null};
+    note.textContent = "Loading the name reader…";
+    onOcrProgress = function(status, p){
+      if(status==="recognizing text") note.textContent = "Reading screenshot "+(i+1)+" of "+files.length+"… "+Math.round((pass+p)*50)+"%";
+      else if(i===0 && pass===0) note.textContent = "Loading the name reader… "+Math.round(p*100)+"%";
+    };
+    function finish(){
+      onOcrProgress = null; dropWorker();
+      var ok = files.length - failed.length;
+      if(!ok){ note.textContent = "Couldn't read the screenshot"+(files.length>1?"s":"")+". Try clearer screenshots."; return; }
+      note.textContent = "Read "+ok+" of "+files.length+" screenshot"+(files.length>1?"s":"")+"."+
+        (failed.length ? " Couldn't read screenshot "+failed.join(", ")+"; try "+(failed.length>1?"them":"it")+" again." : "");
+      applyScan(all);
+    }
     loadOCR().then(function(T){
-      var all = {members:[], total:null}, i = 0;
-      function next(){
-        if(i>=files.length){ $("#shotNote").textContent = "Read "+files.length+" screenshot"+(files.length>1?"s":"")+"."; applyScan(all); return; }
-        $("#shotNote").textContent = "Reading screenshot "+(i+1)+" of "+files.length+"…";
-        prepImage(files[i]).then(function(c){ return T.recognize(c, "eng"); }).then(function(r){
-          var sc = parseMembersText(r.data.text); if(sc.total) all.total = Math.max(all.total||0, sc.total);
-          sc.members.forEach(function(f){ if(!all.members.some(function(x){ return norm(x.name)===norm(f.name); })) all.members.push(f); });
-          i++; next();
-        }).catch(function(){ $("#shotNote").textContent = "Couldn't read screenshot "+(i+1)+". Try a clearer screenshot."; });
-      }
-      next();
-    }).catch(function(){ $("#shotNote").textContent = "Couldn't load the name reader. Check your internet connection and try again."; });
+      return withTimeout(getWorker(T), LOAD_TIMEOUT).then(function(w){
+        function next(){
+          if(i>=files.length) return finish();
+          pass = 0; note.textContent = "Reading screenshot "+(i+1)+" of "+files.length+"… 0%";
+          withTimeout(readShot(w, files[i], function(n){ pass = n; }), SHOT_TIMEOUT).then(function(sc){
+            if(sc.total) all.total = Math.max(all.total||0, sc.total);
+            sc.members.forEach(function(f){ if(!all.members.some(function(x){ return norm(x.name)===norm(f.name); })) all.members.push(f); });
+            i++; next();
+          }, function(err){
+            failed.push(i+1); i++;
+            // A worker that timed out may still be busy: start a fresh one for the rest.
+            if(err && err.message==="timeout"){ dropWorker(); withTimeout(getWorker(T), LOAD_TIMEOUT).then(function(nw){ w = nw; next(); }, function(){ failed = failed.concat(files.slice(i).map(function(_, k){ return i+k+1; })); i = files.length; finish(); }); }
+            else next();
+          });
+        }
+        next();
+      });
+    }).catch(function(){ onOcrProgress = null; dropWorker(); note.textContent = "Couldn't load the name reader. Check your internet connection and try again."; });
   });
 
   // ---------- Posts ----------
